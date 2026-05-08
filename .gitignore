@@ -1,0 +1,7 @@
+node_modules/
+build/
+.firebase/
+__pycache__/
+.env
+
+firebase-debug.log
