@@ -1,61 +1,186 @@
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import Draggable from "react-draggable";
 
 export default function ChatWidget() {
+
   const [isOpen, setIsOpen] = useState(false);
+
   const [messages, setMessages] = useState([
     {
       role: "bot",
-      text: "Hi! I'm VoltBot ⚡ Ask me anything about your energy usage, billing, or devices!",
+      text: `# Welcome to VoltBot ⚡
+
+I can help you with:
+
+- Energy analytics
+- Billing questions
+- Smart devices
+- PDF knowledge base
+- Power optimization tips`,
     },
   ]);
+
   const [input, setInput] = useState("");
+
   const [loading, setLoading] = useState(false);
+
+  const [useRAG, setUseRAG] = useState(false);
+  const [tempPDFUploaded, setTempPDFUploaded] =
+  useState(false);
+
   const bottomRef = useRef(null);
 
   useEffect(() => {
-    if (isOpen) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, isOpen]);
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
 
   const sendMessage = async () => {
+
     if (!input.trim() || loading) return;
 
     const userMessage = input.trim();
-    setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        text: userMessage,
+      },
+    ]);
+
     setInput("");
+
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
-      });
+
+      let endpoint = "/api/v1/chat";
+
+if (useRAG && tempPDFUploaded) {
+
+  endpoint = "/api/v1/chat/temp";
+
+}
+else if (useRAG) {
+
+  endpoint = "/api/v1/chat/rag";
+
+}
+
+      const res = await fetch(
+        `http://localhost:8000${endpoint}`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            message: userMessage,
+          }),
+        }
+      );
 
       const data = await res.json();
 
-      if (res.status === 429) {
-        setMessages((prev) => [...prev, {
-          role: "bot",
-          text: "⏳ VoltBot is at capacity. Please wait a moment and try again!",
-        }]);
-        return;
+      if (!res.ok) {
+        throw new Error(data.detail || "Something went wrong");
       }
 
-      if (!res.ok) throw new Error(data.detail || "Something went wrong");
-      setMessages((prev) => [...prev, { role: "bot", text: data.reply }]);
-    } catch {
-      setMessages((prev) => [...prev, {
-        role: "bot",
-        text: "⚠️ Could not reach VoltBot. Please try again.",
-      }]);
+      const botReply = useRAG
+        ? data.response
+        : data.reply;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "bot",
+          text: botReply,
+          sources: data.sources || [],
+        },
+      ]);
+
+    } catch (err) {
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "bot",
+          text: `# Connection Error
+
+Could not connect to VoltBot backend.
+
+Please check:
+
+- FastAPI server is running
+- Backend is on port 8000
+- Internet connection`,
+        },
+      ]);
+
     } finally {
+
       setLoading(false);
+
     }
   };
 
+
+const uploadTempPDF = async (e) => {
+
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  const formData = new FormData();
+
+  formData.append("file", file);
+
+  try {
+
+    setLoading(true);
+
+    const res = await fetch(
+      "http://localhost:8000/api/v1/chat/temp/upload",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await res.json();
+
+    setTempPDFUploaded(true);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "bot",
+        text:
+          `# PDF Ready ✅
+
+You can now ask questions
+about the uploaded document.`,
+      },
+    ]);
+
+  } catch (err) {
+
+    console.log(err);
+
+  } finally {
+
+    setLoading(false);
+
+  }
+};
+
   const handleKeyDown = (e) => {
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -64,161 +189,413 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* Chat Window */}
+
       {isOpen && (
-        <div style={styles.chatWindow}>
-          {/* Header */}
-          <div style={styles.header}>
-            <div style={styles.headerLeft}>
-              <div style={styles.avatar}>⚡</div>
-              <div>
-                <div style={styles.headerTitle}>VoltBot</div>
-                <div style={styles.headerStatus}>
-                  <span style={styles.statusDot} />
-                  Online
-                </div>
-              </div>
-            </div>
-            <button style={styles.closeBtn} onClick={() => setIsOpen(false)}>✕</button>
-          </div>
 
-          {/* Messages */}
-          <div style={styles.messages}>
-            {messages.map((msg, i) => (
-              <div key={i} style={{
-                display: "flex",
-                justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
-                alignItems: "flex-end",
-                gap: "8px",
-              }}>
-                {msg.role === "bot" && (
-                  <div style={styles.botAvatar}>⚡</div>
-                )}
-                <div style={{
-                  ...styles.bubble,
-                  background: msg.role === "user"
-                    ? "linear-gradient(135deg, #06b6d4, #3b82f6)"
-                    : "#1e293b",
-                  borderRadius: msg.role === "user"
-                    ? "18px 18px 4px 18px"
-                    : "18px 18px 18px 4px",
-                  alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-                }}>
-                  {msg.text}
-                </div>
-              </div>
-            ))}
+        <Draggable handle=".drag-handle">
 
-            {loading && (
-              <div style={{ display: "flex", alignItems: "flex-end", gap: "8px" }}>
-                <div style={styles.botAvatar}>⚡</div>
-                <div style={{ ...styles.bubble, background: "#1e293b" }}>
-                  <div style={styles.typingDots}>
-                    <span /><span /><span />
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={bottomRef} />
-          </div>
+          <div
+            style={{
+              ...styles.chatWindow,
 
-          {/* Input */}
-          <div style={styles.inputArea}>
-            <input
-              style={styles.input}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask VoltBot..."
-              disabled={loading}
-            />
-            <button
+              background: useRAG
+                ? "linear-gradient(180deg, rgba(30,27,75,0.96), rgba(49,46,129,0.93))"
+                : "rgba(15,23,42,0.82)",
+
+              boxShadow: useRAG
+                ? "0 0 55px rgba(168,85,247,0.22)"
+                : "0 0 45px rgba(6,182,212,0.16)",
+            }}
+          >
+
+            {/* HEADER */}
+            <div
+              className="drag-handle"
               style={{
-                ...styles.sendBtn,
-                opacity: loading || !input.trim() ? 0.4 : 1,
-                cursor: loading || !input.trim() ? "not-allowed" : "pointer",
+                ...styles.header,
+                cursor: "move",
               }}
-              onClick={sendMessage}
-              disabled={loading || !input.trim()}
             >
-              ➤
-            </button>
+
+              <div style={styles.headerLeft}>
+
+                <div style={styles.avatar}>
+                  ⚡
+                </div>
+
+                <div>
+
+                  <div style={styles.headerTitle}>
+                    {useRAG
+                      ? "VoltBot Intelligence"
+                      : "VoltBot AI"}
+                  </div>
+
+                  <div
+                    style={{
+                      ...styles.headerStatus,
+                      color: useRAG
+                        ? "#c084fc"
+                        : "#22d3ee",
+                    }}
+                  >
+
+                    <span style={styles.statusDot} />
+
+                    {useRAG
+                      ? "Knowledge Base Active"
+                      : "General Assistant"}
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* RIGHT SIDE */}
+              <div style={styles.headerActions}>
+
+                <span
+                  style={{
+                    ...styles.modeText,
+                    color: useRAG
+                      ? "#c084fc"
+                      : "#22d3ee",
+                  }}
+                >
+                  {useRAG ? "RAG" : "AI"}
+                </span>
+
+                {/* TOGGLE */}
+                <div
+                  style={{
+                    ...styles.toggleSwitch,
+                    background: useRAG
+                      ? "#7c3aed"
+                      : "#334155",
+                  }}
+                  onClick={() => setUseRAG(!useRAG)}
+                >
+
+                  <div
+                    style={{
+                      ...styles.toggleCircle,
+                      transform: useRAG
+                        ? "translateX(20px)"
+                        : "translateX(0px)",
+                    }}
+                  />
+
+                </div>
+
+                {/* CLOSE */}
+                <button
+                  style={styles.closeBtn}
+                  onClick={() => setIsOpen(false)}
+                >
+                  ✕
+                </button>
+
+              </div>
+
+            </div>
+
+            {/* MESSAGES */}
+            <div style={styles.messages}>
+
+              {messages.map((msg, i) => (
+
+                <div key={i}>
+
+                  <div
+                    style={{
+                      display: "flex",
+
+                      justifyContent:
+                        msg.role === "user"
+                          ? "flex-end"
+                          : "flex-start",
+
+                      alignItems: "flex-end",
+
+                      gap: "8px",
+                    }}
+                  >
+
+                    {msg.role === "bot" && (
+                      <div style={styles.botAvatar}>
+                        ⚡
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        ...styles.bubble,
+
+                        background:
+                          msg.role === "user"
+                            ? "linear-gradient(135deg, #06b6d4, #3b82f6)"
+                            : "rgba(255,255,255,0.05)",
+
+                        backdropFilter: "blur(12px)",
+
+                        border:
+                          msg.role === "bot"
+                            ? "1px solid rgba(255,255,255,0.06)"
+                            : "none",
+
+                        borderRadius:
+                          msg.role === "user"
+                            ? "18px 18px 4px 18px"
+                            : "18px 18px 18px 4px",
+
+                        borderLeft:
+                          msg.sources?.length > 0
+                            ? useRAG
+                              ? "3px solid #c084fc"
+                              : "3px solid #22d3ee"
+                            : "none",
+                      }}
+                    >
+
+                      <ReactMarkdown
+                        components={{
+
+                          h1: ({node, ...props}) => (
+                            <h1
+                              style={{
+                                fontSize: "1.25rem",
+                                fontWeight: "700",
+                                marginBottom: "12px",
+                                color: "#ffffff",
+                              }}
+                              {...props}
+                            />
+                          ),
+
+                          h2: ({node, ...props}) => (
+                            <h2
+                              style={{
+                                fontSize: "1.1rem",
+                                fontWeight: "700",
+                                marginBottom: "10px",
+                                marginTop: "12px",
+                                color: "#ffffff",
+                              }}
+                              {...props}
+                            />
+                          ),
+
+                          p: ({node, ...props}) => (
+                            <p
+                              style={{
+                                lineHeight: "1.7",
+                                marginBottom: "10px",
+                                color: "#f8fafc",
+                              }}
+                              {...props}
+                            />
+                          ),
+
+                          ul: ({node, ...props}) => (
+                            <ul
+                              style={{
+                                paddingLeft: "20px",
+                                marginBottom: "10px",
+                              }}
+                              {...props}
+                            />
+                          ),
+
+                          li: ({node, ...props}) => (
+                            <li
+                              style={{
+                                marginBottom: "6px",
+                              }}
+                              {...props}
+                            />
+                          ),
+
+                          strong: ({node, ...props}) => (
+                            <strong
+                              style={{
+                                color: "#fff",
+                              }}
+                              {...props}
+                            />
+                          ),
+
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+
+                    </div>
+
+                  </div>
+
+          
+
+                </div>
+
+              ))}
+
+              {/* LOADING */}
+              {loading && (
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                  }}
+                >
+
+                  <div style={styles.botAvatar}>
+                    ⚡
+                  </div>
+
+                  <div
+                    style={{
+                      ...styles.bubble,
+                      background: "rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    Analyzing...
+                  </div>
+
+                </div>
+
+              )}
+
+              <div ref={bottomRef} />
+
+            </div>
+
+            {/* INPUT */}
+            {useRAG && (
+
+  <label
+    style={{
+      color: "#c084fc",
+      fontSize: "0.75rem",
+      cursor: "pointer",
+      marginBottom: "8px",
+    }}
+  >
+
+    📄 Upload Temporary PDF
+
+    <input
+      type="file"
+      accept=".pdf"
+      hidden
+      onChange={uploadTempPDF}
+    />
+
+  </label>
+
+)}
+            <div style={styles.inputArea}>
+
+              <input
+                style={styles.input}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  useRAG
+                    ? "Ask questions from PDFs..."
+                    : "Ask VoltBot..."
+                }
+                disabled={loading}
+              />
+
+              <button
+                style={styles.sendBtn}
+                onClick={sendMessage}
+                disabled={loading}
+              >
+                ➤
+              </button>
+
+            </div>
+
           </div>
-        </div>
+
+        </Draggable>
+
       )}
 
-{/* Floating Bubble */}
-<div style={styles.bubbleWrapper}>
-  {/* Animated label */}
-  {!isOpen && (
-    <div style={styles.label}>
-      <span style={styles.labelDot} />
-      Ask VoltBot
-    </div>
-  )}
+      {/* FLOATING BUTTON */}
+      <div style={styles.bubbleWrapper}>
 
-  {/* Bubble button */}
-  <button style={styles.bubble_btn} onClick={() => setIsOpen((prev) => !prev)}>
-    {isOpen ? "✕" : "⚡"}
-    {!isOpen && messages.length > 1 && (
-      <span style={styles.badge}>
-        {messages.filter(m => m.role === "bot").length - 1}
-      </span>
-    )}
-  </button>
-</div>
-      {/* Typing animation CSS */}
-      <style>{`
-        @keyframes blink {
-          0%, 80%, 100% { opacity: 0; transform: scale(0.8); }
-          40% { opacity: 1; transform: scale(1); }
-        }
-        .typing-dot {
-          width: 7px; height: 7px;
-          background: #64748b;
-          border-radius: 50%;
-          display: inline-block;
-          animation: blink 1.4s infinite ease-in-out;
-        }
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-      `}</style>
+        {!isOpen && (
+
+          <div style={styles.label}>
+
+            <span style={styles.labelDot} />
+
+            {useRAG
+              ? "PDF Intelligence"
+              : "Ask VoltBot"}
+
+          </div>
+
+        )}
+
+        <button
+          style={styles.bubble_btn}
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          ⚡
+        </button>
+
+      </div>
+
     </>
   );
 }
 
 const styles = {
+
   chatWindow: {
     position: "fixed",
     bottom: "90px",
     right: "24px",
-    width: "360px",
-    height: "500px",
-    backgroundColor: "#0f172a",
-    borderRadius: "20px",
-    boxShadow: "0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(6,182,212,0.15)",
+    width: "420px",
+    height: "680px",
+    borderRadius: "24px",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
     zIndex: 9999,
-    animation: "slideUp 0.25s ease",
+    backdropFilter: "blur(18px)",
+    border: "1px solid rgba(255,255,255,0.08)",
   },
+
   header: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     padding: "14px 16px",
-    background: "linear-gradient(135deg, #0f172a, #1e293b)",
-    borderBottom: "1px solid rgba(6,182,212,0.15)",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
   },
+
   headerLeft: {
     display: "flex",
     alignItems: "center",
     gap: "10px",
   },
+
+  headerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+
   avatar: {
-    width: "38px",
-    height: "38px",
+    width: "40px",
+    height: "40px",
     borderRadius: "50%",
     background: "linear-gradient(135deg, #06b6d4, #3b82f6)",
     display: "flex",
@@ -226,45 +603,70 @@ const styles = {
     justifyContent: "center",
     fontSize: "1rem",
   },
+
   headerTitle: {
-    color: "#f1f5f9",
+    color: "#ffffff",
     fontWeight: "700",
     fontSize: "0.95rem",
   },
+
   headerStatus: {
+    fontSize: "0.75rem",
     display: "flex",
     alignItems: "center",
-    gap: "4px",
-    color: "#22d3ee",
-    fontSize: "0.72rem",
+    gap: "6px",
   },
+
   statusDot: {
     width: "6px",
     height: "6px",
     borderRadius: "50%",
-    backgroundColor: "#22d3ee",
-    display: "inline-block",
+    backgroundColor: "currentColor",
   },
+
+  modeText: {
+    fontSize: "0.72rem",
+    fontWeight: "700",
+  },
+
+  toggleSwitch: {
+    width: "42px",
+    height: "22px",
+    borderRadius: "999px",
+    position: "relative",
+    cursor: "pointer",
+    padding: "2px",
+    transition: "all 0.3s ease",
+  },
+
+  toggleCircle: {
+    width: "18px",
+    height: "18px",
+    borderRadius: "50%",
+    backgroundColor: "#ffffff",
+    transition: "all 0.3s ease",
+  },
+
   closeBtn: {
     background: "none",
     border: "none",
-    color: "#64748b",
-    fontSize: "1rem",
+    color: "#94a3b8",
     cursor: "pointer",
-    padding: "4px 8px",
-    borderRadius: "6px",
+    fontSize: "1rem",
   },
+
   messages: {
     flex: 1,
     overflowY: "auto",
     padding: "16px",
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
+    gap: "14px",
   },
+
   botAvatar: {
-    width: "26px",
-    height: "26px",
+    width: "28px",
+    height: "28px",
     borderRadius: "50%",
     background: "linear-gradient(135deg, #06b6d4, #3b82f6)",
     display: "flex",
@@ -273,81 +675,103 @@ const styles = {
     fontSize: "0.7rem",
     flexShrink: 0,
   },
+
   bubble: {
-    maxWidth: "80%",
-    padding: "10px 14px",
-    color: "#f1f5f9",
+    maxWidth: "85%",
+    padding: "12px 15px",
+    color: "#f8fafc",
     fontSize: "0.88rem",
-    lineHeight: "1.5",
+    lineHeight: "1.6",
+    wordWrap: "break-word",
   },
-  typingDots: {
-    display: "flex",
-    gap: "4px",
-    padding: "2px 0",
+
+  sourcesList: {
+    marginTop: "8px",
+    padding: "10px",
+    background: "rgba(255,255,255,0.04)",
+    borderRadius: "10px",
+    border: "1px solid rgba(255,255,255,0.06)",
   },
+
+  sourceItem: {
+    marginBottom: "10px",
+    color: "#ffffff",
+  },
+
+  sourceDetail: {
+    fontSize: "0.75rem",
+    color: "#94a3b8",
+    marginTop: "2px",
+  },
+
   inputArea: {
     display: "flex",
     gap: "8px",
     padding: "12px",
-    borderTop: "1px solid rgba(6,182,212,0.1)",
-    backgroundColor: "#0f172a",
+    borderTop: "1px solid rgba(255,255,255,0.08)",
   },
+
   input: {
     flex: 1,
-    padding: "10px 14px",
-    borderRadius: "12px",
-    border: "1px solid #1e293b",
-    backgroundColor: "#1e293b",
-    color: "#f1f5f9",
-    fontSize: "0.88rem",
+    padding: "12px 14px",
+    borderRadius: "14px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.05)",
+    color: "#ffffff",
     outline: "none",
   },
+
   sendBtn: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "12px",
+    width: "44px",
+    height: "44px",
+    borderRadius: "14px",
     background: "linear-gradient(135deg, #06b6d4, #3b82f6)",
     border: "none",
-    color: "#fff",
+    color: "#ffffff",
+    cursor: "pointer",
     fontSize: "1rem",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "opacity 0.2s",
   },
+
   bubble_btn: {
     position: "fixed",
     bottom: "24px",
     right: "24px",
-    width: "56px",
-    height: "56px",
+    width: "58px",
+    height: "58px",
     borderRadius: "50%",
     background: "linear-gradient(135deg, #06b6d4, #3b82f6)",
     border: "none",
-    color: "#fff",
+    color: "#ffffff",
     fontSize: "1.4rem",
     cursor: "pointer",
-    boxShadow: "0 8px 32px rgba(6,182,212,0.4)",
     zIndex: 10000,
+    boxShadow: "0 0 35px rgba(6,182,212,0.35)",
+  },
+
+  bubbleWrapper: {
+    position: "relative",
+  },
+
+  label: {
+    position: "fixed",
+    bottom: "92px",
+    right: "24px",
+    background: "rgba(15,23,42,0.95)",
+    padding: "8px 12px",
+    borderRadius: "10px",
+    color: "#ffffff",
+    fontSize: "0.8rem",
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
-    transition: "transform 0.2s",
+    gap: "6px",
+    border: "1px solid rgba(255,255,255,0.08)",
   },
-  
-  badge: {
-    position: "absolute",
-    top: "-4px",
-    right: "-4px",
-    width: "18px",
-    height: "18px",
+
+  labelDot: {
+    width: "6px",
+    height: "6px",
     borderRadius: "50%",
-    backgroundColor: "#ef4444",
-    color: "#fff",
-    fontSize: "0.65rem",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "700",
+    backgroundColor: "#22d3ee",
   },
+
 };

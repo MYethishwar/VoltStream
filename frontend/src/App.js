@@ -22,7 +22,7 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Cookies from "./pages/Cookies";
 import Chat from "./pages/Chat";
-import ChatWidget from "./components/ChatWidget";  // ← ADD
+import ChatWidget from "./components/ChatWidget";
 
 
 
@@ -105,8 +105,7 @@ function AppLayout() {
         />
 
       </Routes>
-      <ChatWidget />   {/* ← ADD this line at the bottom */}
-
+      <ChatWidget />
     </>
   );
 }
@@ -117,6 +116,7 @@ function AppLayout() {
 function App() {
 
   return (
+    
     <AuthProvider>
 
       <BrowserRouter>
