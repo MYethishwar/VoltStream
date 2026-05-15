@@ -26,8 +26,10 @@ I can help you with:
   const [loading, setLoading] = useState(false);
 
   const [useRAG, setUseRAG] = useState(false);
-  const [tempPDFUploaded, setTempPDFUploaded] =
-  useState(false);
+
+  // TEMP PDF FEATURE DISABLED
+  // const [tempPDFUploaded, setTempPDFUploaded] =
+  // useState(false);
 
   const bottomRef = useRef(null);
 
@@ -59,16 +61,15 @@ I can help you with:
 
       let endpoint = "/api/v1/chat";
 
-if (useRAG && tempPDFUploaded) {
+      // TEMP PDF FEATURE DISABLED
+      // if (useRAG && tempPDFUploaded) {
+      //   endpoint = "/api/v1/chat/temp";
+      // }
+      // else
 
-  endpoint = "/api/v1/chat/temp";
-
-}
-else if (useRAG) {
-
-  endpoint = "/api/v1/chat/rag";
-
-}
+      if (useRAG) {
+        endpoint = "/api/v1/chat/rag";
+      }
 
       const res = await fetch(
         `http://localhost:8000${endpoint}`,
@@ -129,55 +130,60 @@ Please check:
     }
   };
 
+  // =========================================================
+  // TEMP PDF UPLOAD FUNCTIONALITY DISABLED
+  // =========================================================
 
-const uploadTempPDF = async (e) => {
+  /*
+  const uploadTempPDF = async (e) => {
 
-  const file = e.target.files[0];
+    const file = e.target.files[0];
 
-  if (!file) return;
+    if (!file) return;
 
-  const formData = new FormData();
+    const formData = new FormData();
 
-  formData.append("file", file);
+    formData.append("file", file);
 
-  try {
+    try {
 
-    setLoading(true);
+      setLoading(true);
 
-    const res = await fetch(
-      "http://localhost:8000/api/v1/chat/temp/upload",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
+      const res = await fetch(
+        "http://localhost:8000/api/v1/chat/temp/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
-    const data = await res.json();
+      const data = await res.json();
 
-    setTempPDFUploaded(true);
+      setTempPDFUploaded(true);
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "bot",
-        text:
-          `# PDF Ready ✅
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "bot",
+          text:
+            `# PDF Ready ✅
 
 You can now ask questions
 about the uploaded document.`,
-      },
-    ]);
+        },
+      ]);
 
-  } catch (err) {
+    } catch (err) {
 
-    console.log(err);
+      console.log(err);
 
-  } finally {
+    } finally {
 
-    setLoading(false);
+      setLoading(false);
 
-  }
-};
+    }
+  };
+  */
 
   const handleKeyDown = (e) => {
 
@@ -359,82 +365,153 @@ about the uploaded document.`,
                     >
 
                       <ReactMarkdown
-                        components={{
+  components={{
 
-                          h1: ({node, ...props}) => (
-                            <h1
-                              style={{
-                                fontSize: "1.25rem",
-                                fontWeight: "700",
-                                marginBottom: "12px",
-                                color: "#ffffff",
-                              }}
-                              {...props}
-                            />
-                          ),
+    h1: ({ node, ...props }) => (
+      <h1
+        style={{
+          fontSize: "1.2rem",
+          fontWeight: "700",
+          marginBottom: "12px",
+          color: "#ffffff",
+          lineHeight: "1.5",
+        }}
+        {...props}
+      />
+    ),
 
-                          h2: ({node, ...props}) => (
-                            <h2
-                              style={{
-                                fontSize: "1.1rem",
-                                fontWeight: "700",
-                                marginBottom: "10px",
-                                marginTop: "12px",
-                                color: "#ffffff",
-                              }}
-                              {...props}
-                            />
-                          ),
+    h2: ({ node, ...props }) => (
+      <h2
+        style={{
+          fontSize: "1.05rem",
+          fontWeight: "700",
+          marginTop: "12px",
+          marginBottom: "10px",
+          color: "#ffffff",
+          lineHeight: "1.5",
+        }}
+        {...props}
+      />
+    ),
 
-                          p: ({node, ...props}) => (
-                            <p
-                              style={{
-                                lineHeight: "1.7",
-                                marginBottom: "10px",
-                                color: "#f8fafc",
-                              }}
-                              {...props}
-                            />
-                          ),
+    h3: ({ node, ...props }) => (
+      <h3
+        style={{
+          fontSize: "0.95rem",
+          fontWeight: "700",
+          marginTop: "10px",
+          marginBottom: "8px",
+          color: "#ffffff",
+        }}
+        {...props}
+      />
+    ),
 
-                          ul: ({node, ...props}) => (
-                            <ul
-                              style={{
-                                paddingLeft: "20px",
-                                marginBottom: "10px",
-                              }}
-                              {...props}
-                            />
-                          ),
+    p: ({ node, ...props }) => (
+      <p
+        style={{
+          lineHeight: "1.8",
+          marginBottom: "10px",
+          color: "#f8fafc",
+          fontSize: "0.9rem",
+        }}
+        {...props}
+      />
+    ),
 
-                          li: ({node, ...props}) => (
-                            <li
-                              style={{
-                                marginBottom: "6px",
-                              }}
-                              {...props}
-                            />
-                          ),
+    ul: ({ node, ...props }) => (
+      <ul
+        style={{
+          paddingLeft: "20px",
+          marginBottom: "12px",
+          lineHeight: "1.7",
+        }}
+        {...props}
+      />
+    ),
 
-                          strong: ({node, ...props}) => (
-                            <strong
-                              style={{
-                                color: "#fff",
-                              }}
-                              {...props}
-                            />
-                          ),
+    ol: ({ node, ...props }) => (
+      <ol
+        style={{
+          paddingLeft: "20px",
+          marginBottom: "12px",
+          lineHeight: "1.7",
+        }}
+        {...props}
+      />
+    ),
 
-                        }}
-                      >
-                        {msg.text}
-                      </ReactMarkdown>
+    li: ({ node, ...props }) => (
+      <li
+        style={{
+          marginBottom: "6px",
+          color: "#e2e8f0",
+        }}
+        {...props}
+      />
+    ),
+
+    strong: ({ node, ...props }) => (
+      <strong
+        style={{
+          color: "#ffffff",
+          fontWeight: "700",
+        }}
+        {...props}
+      />
+    ),
+
+    code: ({ inline, children, ...props }) => (
+
+      inline ? (
+
+        <code
+          style={{
+            background: "rgba(255,255,255,0.08)",
+            padding: "2px 6px",
+            borderRadius: "6px",
+            fontSize: "0.82rem",
+            color: "#67e8f9",
+          }}
+          {...props}
+        >
+          {children}
+        </code>
+
+      ) : (
+
+        <pre
+          style={{
+            background: "#0f172a",
+            padding: "12px",
+            borderRadius: "12px",
+            overflowX: "auto",
+            marginTop: "10px",
+            marginBottom: "10px",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <code
+            style={{
+              color: "#e2e8f0",
+              fontSize: "0.82rem",
+            }}
+          >
+            {children}
+          </code>
+        </pre>
+
+      )
+    ),
+
+  }}
+>
+  {msg.text}
+</ReactMarkdown>
 
                     </div>
 
                   </div>
-
-          
 
                 </div>
 
@@ -471,30 +548,34 @@ about the uploaded document.`,
 
             </div>
 
-            {/* INPUT */}
+            {/* TEMP PDF FEATURE DISABLED */}
+
+            {/*
             {useRAG && (
 
-  <label
-    style={{
-      color: "#c084fc",
-      fontSize: "0.75rem",
-      cursor: "pointer",
-      marginBottom: "8px",
-    }}
-  >
+              <label
+                style={{
+                  color: "#c084fc",
+                  fontSize: "0.75rem",
+                  cursor: "pointer",
+                  marginBottom: "8px",
+                }}
+              >
 
-    📄 Upload Temporary PDF
+                📄 Upload Temporary PDF
 
-    <input
-      type="file"
-      accept=".pdf"
-      hidden
-      onChange={uploadTempPDF}
-    />
+                <input
+                  type="file"
+                  accept=".pdf"
+                  hidden
+                  onChange={uploadTempPDF}
+                />
 
-  </label>
+              </label>
 
-)}
+            )}
+            */}
+
             <div style={styles.inputArea}>
 
               <input
@@ -555,6 +636,8 @@ about the uploaded document.`,
     </>
   );
 }
+
+// styles remain same
 
 const styles = {
 

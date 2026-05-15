@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
-
+import LearningGuide from "./pages/LearningGuide";
 import Navbar from "./components/Navbar";
 
 import Home from "./pages/Home";
@@ -64,7 +64,7 @@ function AppLayout() {
         <Route path="/terms" element={<Terms />} />
         <Route path="/cookies" element={<Cookies />} />
         <Route path="/chat" element={<ChatWidget />} />
-
+        
 
         {/* PRIVATE ROUTES */}
 
@@ -103,6 +103,14 @@ function AppLayout() {
             </PrivateRoute>
           }
         />
+        <Route
+  path="/learning-guide"
+  element={
+    <PrivateRoute>
+      <LearningGuide />
+    </PrivateRoute>
+  }
+/>
 
       </Routes>
       <ChatWidget />

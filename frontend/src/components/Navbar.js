@@ -21,18 +21,19 @@ const Icons = {
   ),
 };
 
-// ✅ All hooks are INSIDE the function component
+
+
 function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, logout } = useAuth();       // ✅ inside component
-  const navigate = useNavigate();            // ✅ inside component
+  const { user, logout } = useAuth();       
+  const navigate = useNavigate();            
 
-  const navLinks = [
-    ["Dashboard", "/dashboard"],
-    ["Analytics", "/analytics"],
-    ["Devices",   "/devices"],
-    ["Billing",   "/billing"],
-  ];
+ const navLinks = [
+  ["Dashboard", "/dashboard"],
+  ["Analytics", "/analytics"],
+  ["Devices",   "/devices"],
+  ["Billing",   "/billing"],
+["Learning Guide", "/learning-guide"],];
 
   const handleLogout = () => {
     logout();

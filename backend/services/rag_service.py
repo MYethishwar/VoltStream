@@ -5,11 +5,11 @@ from services.chroma_service import (
     store_chunks,
     search_chunks
 )
-from services.chroma_service import (
-    store_temp_chunks,
-    search_temp_chunks,
-    clear_temp_collection
-)
+# from services.chroma_service import (
+#     store_temp_chunks,
+#     search_temp_chunks,
+#     clear_temp_collection
+# )
 
 from google import genai
 
@@ -22,79 +22,80 @@ client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY")
 )
 
-def process_temp_pdf(pdf_path, pdf_name):
+# def process_temp_pdf(pdf_path, pdf_name):
 
-    clear_temp_collection()
+#     clear_temp_collection()
 
-    extracted = extract_text_from_pdf(pdf_path)
+#     extracted = extract_text_from_pdf(pdf_path)
 
-    text = extracted["text"]
+#     text = extracted["text"]
 
-    chunks = chunk_text(text)
+#     chunks = chunk_text(text)
 
-    metadata_list = []
+#     metadata_list = []
 
-    for idx, chunk in enumerate(chunks):
+#     for idx, chunk in enumerate(chunks):
 
-        metadata_list.append({
-            "pdf_name": pdf_name,
-            "chunk_id": idx,
-            "page_num": idx + 1
-        })
+#         metadata_list.append({
+#             "pdf_name": pdf_name,
+#             "chunk_id": idx,
+#             "page_num": idx + 1
+#         })
 
-    store_temp_chunks(chunks, metadata_list)
+#     store_temp_chunks(chunks, metadata_list)
 
-    return {
-        "success": True,
-        "message": "Temporary PDF loaded successfully",
-        "chunks_created": len(chunks)
-}
-    
-    
-def get_temp_rag_response(user_question):
-
-    results = search_temp_chunks(user_question)
-
-    documents = results["documents"][0]
-
-    if not documents:
-
-        return {
-            "response":
-                "I could not find relevant information in the uploaded document."
-        }
-
-    context = "\n\n".join(documents)
-
-    prompt = f"""
-You are VoltBot AI.
-
-Answer naturally and conversationally.
-
-Use ONLY the provided PDF context.
-
-If information is unavailable,
-politely explain limitations.
-
-CONTEXT:
-{context}
-
-QUESTION:
-{user_question}
-"""
-
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-
-    return {
-        "response": response.text
-}
+#     return {
+#         "success": True,
+#         "message": "Temporary PDF loaded successfully",
+#         "chunks_created": len(chunks)
+# }
     
     
     
 # def get_temp_rag_response(user_question):
+
+#     results = search_temp_chunks(user_question)
+
+#     documents = results["documents"][0]
+
+#     if not documents:
+
+#         return {
+#             "response":
+#                 "I could not find relevant information in the uploaded document."
+#         }
+
+#     context = "\n\n".join(documents)
+
+#     prompt = f"""
+# You are VoltBot AI.
+
+# Answer naturally and conversationally.
+
+# Use ONLY the provided PDF context.
+
+# If information is unavailable,
+# politely explain limitations.
+
+# CONTEXT:
+# {context}
+
+# QUESTION:
+# {user_question}
+# """
+
+#     response = client.models.generate_content(
+#         model="gemini-2.5-flash",
+#         contents=prompt
+#     )
+
+#     return {
+#         "response": response.text
+# }
+    
+    
+    
+# # def get_temp_rag_response(user_question):
 
 #     results = search_temp_chunks(user_question)
 
@@ -201,6 +202,7 @@ Your job is to:
 - behave like a smart assistant, not a search engine
 
 RULES:
+- initial chat message should be professional first reponse the default one suggests you are in a rag based  environment and tell the purpose.
 - If the answer exists in context, answer confidently.
 - If partial information exists, answer with available information.
 - If the question is unrelated to the provided context,
@@ -208,8 +210,10 @@ RULES:
   does not contain enough information.
 - Do NOT blindly say:
   "I don't have that information"
-- Instead respond naturally and professionally.
+- Instead respond naturally and very professionally.
 - Mostly summarize the reponse if it i related to numericals. or jsur breifly conclude in a single line, if user need any further explination.
+- if user asks general knowledge questions, suggest him yo switch the above button to enable a normal conversational mode without RAG, so that you can answer general knowledge questions more freely without being restricted to the context of the knowledge base. but do not suggest this every time, only when you feel that user is asking general knowledge questions or questions that are unlikely to be answered well with the current knowledge base, then suggest them in a friendly way to switch to normal mode for better answers on such topics.
+Golden rule: repond with the best possible answer and in small sentenses... mostly donot exeed 10 - 25 words in a single reponse, if needed by chance you can  extend it to maximum 40 words.   
 CONTEXT:
 {context}
 
@@ -220,6 +224,7 @@ QUESTION:
         model="gemini-2.5-flash",
         contents=prompt
     )
+    
 
     sources = []
 
