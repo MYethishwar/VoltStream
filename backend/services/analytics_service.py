@@ -19,7 +19,7 @@ analytics_data = {
             "cost": 112
         },
         {
-            "label": "Thu",
+            "label": "Thu", 
             "usage": 14.1,
             "solar": 9.4,
             "cost": 134

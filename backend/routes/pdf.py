@@ -2,10 +2,15 @@ from fastapi import (
     APIRouter,
     UploadFile,
     File,
-    Form
+    Form,
+    HTTPException
 )
 
+from fastapi.concurrency import run_in_threadpool
+
 import os
+import uuid
+import shutil
 
 from services.rag_service import process_pdf
 
@@ -21,7 +26,6 @@ PDF_STORAGE_PATH = os.getenv(
 
 os.makedirs(PDF_STORAGE_PATH, exist_ok=True)
 
-
 uploaded_pdfs = []
 
 
@@ -33,23 +37,31 @@ async def upload_pdf(
 
     try:
 
+        if file.content_type != "application/pdf":
+            raise HTTPException(
+                status_code=400,
+                detail="Only PDF files are allowed"
+            )
+
+        unique_name = f"{uuid.uuid4()}_{file.filename}"
+
         file_path = os.path.join(
             PDF_STORAGE_PATH,
-            file.filename
+            unique_name
         )
 
-        with open(file_path, "wb") as f:
-            content = await file.read()
-            f.write(content)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-        result = process_pdf(
+        result = await run_in_threadpool(
+            process_pdf,
             file_path,
-            file.filename,
+            unique_name,
             topic
         )
 
         uploaded_pdfs.append({
-            "name": file.filename,
+            "name": unique_name,
             "topic": topic,
             "chunks": result["chunks_created"]
         })
@@ -58,10 +70,10 @@ async def upload_pdf(
 
     except Exception as e:
 
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 
 @router.get("/pdfs")

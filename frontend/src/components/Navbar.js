@@ -102,22 +102,7 @@ function Navbar() {
               >
                 Launch Dashboard
               </NavLink>
-              <NavLink
-                    to="/chat"
-                    className={({ isActive }) =>
-                      `
-                      text-sm
-                      transition-colors duration-200
-                      ${
-                        isActive
-                          ? "text-cyan-400"
-                          : "text-gray-300 hover:text-white"
-                      }
-                      `
-                    }
-                  >
-                    Chat
-                  </NavLink>
+          
             </>
           )}
         </div>

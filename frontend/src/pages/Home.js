@@ -310,7 +310,7 @@ function Home() {
   >
     Roadmap
   </button>
-</li>                <li><button className="hover:text-gray-300 transition-colors bg-transparent border-0 cursor-pointer p-0">Security</button></li>
+</li>               
               </ul>
             </div>
 

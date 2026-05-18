@@ -43,12 +43,12 @@ def get_chat_response(user_message: str) -> str:
             model="gemini-2.5-flash",
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
-                max_output_tokens=500,        
+                max_output_tokens=300,        
                 temperature=0.7,
             ),
             contents=user_message,
         )
-        return response.text
+        return response.text or ""
     except Exception as e:
         error_str = str(e)
         print(f"CHAT ERROR: {error_str}")

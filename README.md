@@ -1,141 +1,239 @@
-# VoltStream Project Documentation
+# VoltStream
+## Complete End-to-End Architecture
+![alt text](images/image.png)
 
-## Project Overview
-VoltStream is an intelligent energy management platform designed to optimize electricity usage, monitor renewable energy generation, and provide real-time analytics. The platform consists of a React-based frontend and a FastAPI backend, with Dockerized deployment for scalability.
+## File Structure
+![alt text](images/image-1.png)
+## Overview
 
----
+VoltStream is an AI-powered smart energy management platform designed to help users monitor electricity consumption, analyze energy usage patterns, and optimize power efficiency through intelligent insights. The platform combines a modern React frontend with a FastAPI backend and integrates conversational AI along with Retrieval-Augmented Generation (RAG) capabilities.
 
-## Project Structure
-
-### Frontend
-- **Framework**: React.js
-- **Styling**: Tailwind CSS
-- **Deployment**: Firebase Hosting
-- **Key Directories**:
-  - `src/components`: Contains reusable UI components like `ChatWidget`, `Navbar`, and `Sidebar`.
-  - `src/pages`: Implements individual pages such as `Home`, `Dashboard`, `Chat`, and `About`.
-  - `public`: Static assets like `index.html` and `manifest.json`.
-
-### Backend
-- **Framework**: FastAPI
-- **Database**: SQLite (via ChromaDB)
-- **Deployment**: Google Cloud Run
-- **Key Directories**:
-  - `routes`: API endpoints for chat, RAG, and PDF uploads.
-  - `services`: Business logic for analytics, billing, and chatbot functionalities.
-  - `utils`: Utility scripts for text chunking and other helper functions.
+The application provides users with real-time energy analytics, billing insights, smart device management, and an AI-powered assistant called VoltBot. VoltBot can answer general energy-related questions as well as provide context-aware responses using uploaded PDF documents.
 
 ---
 
-## File Functionalities
+# Key Features
 
-### Frontend
-#### `src/components/ChatWidget.js`
-- **Purpose**: Implements the chatbot interface.
-- **Key Functions**:
-  - `sendMessage`: Sends user input to the backend.
-  - `toggleRAG`: Switches between RAG and general AI modes.
-- **Interactions**: Communicates with backend endpoints `/chat` and `/chat/rag`.
-
-#### `src/pages/Chat.jsx`
-- **Purpose**: Renders the chat page.
-- **Key Functions**:
-  - `sendMessage`: Handles user input and displays bot responses.
-  - `handleKeyDown`: Triggers message sending on pressing Enter.
-- **Interactions**: Uses `ChatWidget` for the chatbot interface.
-
-#### `src/pages/Dashboard.js`
-- **Purpose**: Displays energy analytics and statistics.
-- **Key Components**:
-  - `StatRow`: Shows metrics like net consumption and solar coverage.
-
-### Backend
-#### `routes/chat.py`
-- **Purpose**: Handles general chatbot requests.
-- **Endpoints**:
-  - `/chat`: Processes user messages via `chat_service`.
-
-#### `routes/rag.py`
-- **Purpose**: Manages RAG-based chatbot interactions.
-- **Endpoints**:
-  - `/chat/rag`: Retrieves context-aware responses.
-
-#### `services/chat_service.py`
-- **Purpose**: Implements general chatbot logic.
-- **Key Functions**:
-  - `get_chat_response`: Generates responses using the Gemini API.
-
-#### `services/rag_service.py`
-- **Purpose**: Handles RAG-specific logic.
-- **Key Functions**:
-  - `get_rag_response`: Retrieves context-aware answers from indexed documents.
+* AI-powered conversational assistant (VoltBot)
+* Retrieval-Augmented Generation (RAG) based chatbot
+* Smart energy analytics dashboard
+* Electricity billing insights and monitoring
+* Device management system
+* JWT-based authentication and protected routes
+* PDF ingestion and semantic search pipeline
+* Responsive and modern UI using Tailwind CSS
+* Cloud-ready modular architecture
 
 ---
 
-## Tools, Libraries, and Technologies
+# Frontend Architecture
 
-### Frontend
-- **React.js**: Core framework for building the UI.
-- **Tailwind CSS**: Utility-first CSS framework for styling.
-- **Recharts**: Library for data visualization.
+The frontend of VoltStream is developed using React.js and Tailwind CSS. The frontend is responsible for rendering the user interface, handling page navigation, managing authentication state, and interacting with backend APIs.
 
-### Backend
-- **FastAPI**: Framework for building RESTful APIs.
-- **SQLite**: Lightweight database for storing document chunks.
-- **ChromaDB**: Manages document indexing and retrieval.
-- **Google GenAI**: Provides AI capabilities for chatbot responses.
+The application uses React Router for routing between pages such as Dashboard, Analytics, Billing, Devices, and Chat functionalities. The frontend also contains the VoltBot chat widget, which allows users to interact with the conversational AI assistant.
 
-### Deployment
-- **Docker**: Containerization for consistent deployment.
-- **Firebase Hosting**: Serves the frontend.
-- **Google Cloud Run**: Hosts the backend.
+Authentication state is managed using React Context API, enabling protected routes and session management throughout the application.
 
 ---
 
-## Program Flow
+# Backend Architecture
 
-### General Chatbot
-1. **Frontend**:
-   - User inputs a message in `ChatWidget`.
-   - Message is sent to `/chat` via `sendMessage`.
-2. **Backend**:
-   - `chat.py` routes the request to `chat_service`.
-   - `get_chat_response` generates a reply using the Gemini API.
-3. **Frontend**:
-   - Response is displayed in the chat interface.
+The backend is developed using FastAPI and follows a modular architecture consisting of routes, services, utilities, and database layers.
 
-### RAG Chatbot
-1. **Frontend**:
-   - User enables RAG mode in `ChatWidget`.
-   - Message is sent to `/chat/rag`.
-2. **Backend**:
-   - `rag.py` routes the request to `rag_service`.
-   - `get_rag_response` retrieves context-aware answers from indexed documents.
-3. **Frontend**:
-   - Response is displayed with source references.
+The backend handles:
+
+* API endpoint management
+* Authentication and authorization
+* AI response generation
+* Device management
+* Billing and analytics services
+* PDF processing and RAG workflows
+* Database communication
+
+FastAPI routers are used to organize APIs into separate modules such as authentication, chatbot, RAG, analytics, devices, billing, and dashboard services.
 
 ---
 
-## Chatbot Details
+# Conversational AI System
 
-### General Conversational AI
-- **Purpose**: Provides general energy-related advice.
-- **Capabilities**:
-  - Answers questions about energy usage, billing, and devices.
-  - Uses the Gemini API for generating responses.
-- **Limitations**: Does not use external context.
+VoltStream includes a conversational AI assistant called VoltBot. The conversational system uses Google Gemini API to generate intelligent responses related to:
 
-### RAG Chatbot
-- **Purpose**: Offers context-aware responses based on uploaded documents.
-- **Capabilities**:
-  - Retrieves answers from indexed PDFs.
-  - Displays source references for transparency.
-- **Workflow**:
-  - PDFs are uploaded via `/upload-pdf`.
-  - Text is chunked and indexed in ChromaDB.
-  - Queries are processed by `get_rag_response`.
+* Energy optimization
+* Power consumption
+* Electricity billing
+* Smart monitoring
+* Renewable energy usage
+* General knowledge queries
+
+The conversational workflow follows this process:
+
+1. User sends a message through the chatbot interface.
+2. Frontend sends the request to FastAPI backend.
+3. Backend route validates the request.
+4. Chat service forwards the prompt to Gemini API.
+5. Gemini generates a response.
+6. Backend returns the response to the frontend.
+7. Chatbot UI displays the generated reply.
+
+The chatbot behavior is controlled using a detailed system prompt that defines the assistant’s personality, tone, response style, and conversational rules.
 
 ---
 
-## Conclusion
-VoltStream integrates modern technologies to deliver a robust energy management platform. The chatbot, with its dual modes, enhances user interaction by providing both general advice and context-aware insights. The modular architecture ensures scalability and maintainability.
+# Retrieval-Augmented Generation (RAG)
+
+VoltStream also implements a Retrieval-Augmented Generation (RAG) system for context-aware question answering.
+
+The RAG system allows the chatbot to answer questions based on uploaded PDF documents instead of relying only on the language model’s general knowledge.
+
+The PDF ingestion pipeline works as follows:
+
+1. PDF documents are uploaded through FastAPI Swagger endpoints.
+2. PDF text is extracted using the PyPDF library.
+3. Extracted text is divided into overlapping chunks.
+4. Sentence Transformer generates embeddings for each chunk.
+5. Chunks and embeddings are stored inside ChromaDB.
+6. User asks questions in RAG mode.
+7. Similar chunks are retrieved using semantic search.
+8. Retrieved context is sent to Gemini API.
+9. Gemini generates a context-aware response.
+
+This architecture enables the chatbot to provide more accurate and document-grounded answers.
+
+---
+
+# Authentication System
+
+VoltStream implements JWT-based authentication for secure user access.
+
+The authentication system supports:
+
+* User registration
+* User login
+* Password hashing using bcrypt
+* JWT token generation
+* Protected frontend routes
+* Protected backend APIs
+
+The authentication workflow includes:
+
+1. User registers or logs in.
+2. Password is securely hashed and verified.
+3. JWT token is generated by the backend.
+4. Frontend stores the token using React Context.
+5. Protected APIs validate the JWT token before granting access.
+
+This ensures secure access to private dashboards and device management features.
+
+---
+
+# Database and Storage
+
+VoltStream uses multiple storage systems depending on the functionality.
+
+MongoDB is used for:
+
+* User accounts
+* Device data
+* Authentication-related information
+
+ChromaDB is used as the vector database for:
+
+* Embedding storage
+* Semantic search
+* Context retrieval
+
+SQLite is internally used by ChromaDB for persistence.
+
+---
+
+# Technologies Used
+
+## Frontend
+
+* React.js
+* Tailwind CSS
+* JavaScript
+* React Router
+* React Context API
+
+## Backend
+
+* FastAPI
+* Python
+* Pydantic
+* Uvicorn
+* PyMongo
+* bcrypt
+* JWT Authentication
+
+## Artificial Intelligence
+
+* Google Gemini API
+* Gemini 2.5 Flash
+* Sentence Transformers
+* all-MiniLM-L6-v2 Embedding Model
+* Retrieval-Augmented Generation (RAG)
+
+## Databases
+
+* MongoDB
+* ChromaDB
+* SQLite
+
+## PDF Processing
+
+* PyPDF
+* Custom Text Chunking Logic
+
+## Deployment and DevOps
+
+* Docker
+* Firebase Hosting
+* Google Cloud Run
+* GitHub
+
+---
+
+# Project Structure
+
+The project follows a modular full-stack architecture.
+
+Frontend contains:
+
+* Components
+* Pages
+* Authentication Context
+* Routing Logic
+* Chat Widget
+
+Backend contains:
+
+* API Routes
+* Service Layer
+* Database Connections
+* PDF Processing Logic
+* Embedding Generation
+* ChromaDB Integration
+* RAG Services
+* Authentication Logic
+
+This modular structure improves scalability, maintainability, and readability of the project.
+
+---
+
+# Conclusion
+
+VoltStream combines modern web development, artificial intelligence, vector databases, and cloud-ready architecture to create an intelligent energy management platform. The integration of conversational AI and Retrieval-Augmented Generation enables users to receive both general guidance and context-aware insights from documents.
+
+The project demonstrates practical implementation of:
+
+* Full-stack development
+* AI integration
+* Semantic search
+* Vector databases
+* Authentication systems
+* RAG architecture
+* REST API development
+* Cloud deployment workflows
+
+VoltStream serves as a scalable and extensible foundation for future smart energy monitoring and AI-powered assistance systems.

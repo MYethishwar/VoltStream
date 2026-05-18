@@ -585,7 +585,7 @@ about the uploaded document.`,
                 onKeyDown={handleKeyDown}
                 placeholder={
                   useRAG
-                    ? "Ask questions from PDFs..."
+                    ? "Ask questions to RAG..."
                     : "Ask VoltBot..."
                 }
                 disabled={loading}
@@ -645,15 +645,15 @@ const styles = {
     position: "fixed",
     bottom: "90px",
     right: "24px",
-    width: "420px",
-    height: "680px",
-    borderRadius: "24px",
+    width: "450px",
+    height: "550px",
+    borderRadius: "30px",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
     zIndex: 9999,
     backdropFilter: "blur(18px)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid rgba(4, 156, 211, 0.88)",
   },
 
   header: {
@@ -858,3 +858,4 @@ const styles = {
   },
 
 };
+

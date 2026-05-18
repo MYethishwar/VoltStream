@@ -1,26 +1,25 @@
 from pypdf import PdfReader
 
-
 def extract_text_from_pdf(pdf_path):
-    """
-    Extract text page by page from PDF.
-    """
+        """
+        Extract text page by page from PDF.
+        """
 
-    reader = PdfReader(pdf_path)
+        reader = PdfReader(pdf_path)
 
-    full_text = ""
+        full_text = ""
 
-    pages_extracted = 0
+        pages_extracted = 0
 
-    for page in reader.pages:
+        for page in reader.pages:
 
-        text = page.extract_text()
+            text = page.extract_text()
 
-        if text:
-            full_text += text + "\n"
-            pages_extracted += 1
+            if text:
+                full_text += text + "\n"
+                pages_extracted += 1
 
-    return {
-        "text": full_text,
-        "pages_extracted": pages_extracted
-    }
+        return {
+            "text": full_text,
+            "pages_extracted": pages_extracted
+        }
