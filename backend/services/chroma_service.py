@@ -4,10 +4,6 @@ import os
 
 from services.embedding_service import generate_embedding
 
-# -----------------------------
-# Persistent DB (Old System)
-# -----------------------------
-
 CHROMA_DB_PATH = os.getenv(
     "CHROMA_DB_PATH",
     "./chroma_db"
@@ -22,10 +18,6 @@ persistent_collection = (
         name="voltstream_docs"
     )
 )
-
-# -----------------------------
-# Temporary In-Memory DB
-# -----------------------------
 
 temp_client = chromadb.Client()
 

@@ -27,7 +27,6 @@ import ChatWidget from "./components/ChatWidget";
 
 
 
-// ================= PRIVATE ROUTE =================
 
 function PrivateRoute({ children }) {
 
@@ -39,7 +38,6 @@ function PrivateRoute({ children }) {
 }
 
 
-// ================= APP LAYOUT =================
 
 function AppLayout() {
 
@@ -49,7 +47,6 @@ function AppLayout() {
 
       <Routes>
 
-        {/* PUBLIC ROUTES */}
 
         <Route path="/" element={<Home />} />
 
@@ -66,7 +63,6 @@ function AppLayout() {
         <Route path="/chat" element={<ChatWidget />} />
         
 
-        {/* PRIVATE ROUTES */}
 
         <Route
           path="/dashboard"
@@ -119,7 +115,6 @@ function AppLayout() {
 }
 
 
-// ================= MAIN APP =================
 
 function App() {
 
@@ -131,14 +126,12 @@ function App() {
 
         <Routes>
 
-          {/* LOGIN PAGE */}
 
           <Route
             path="/login"
             element={<Login />}
           />
 
-          {/* ALL OTHER PAGES */}
 
           <Route
             path="/*"

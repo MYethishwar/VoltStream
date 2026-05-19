@@ -23,13 +23,12 @@ export default function Login() {
     const data = await res.json();
 
     if (!res.ok) {
-      // ✅ Show exact backend error message to user
       setError(data.detail || data.message || "Something went wrong");
       return;
     }
 
     login(data.user, data.token);
-    navigate("/dashboard");
+    navigate("/");
   } catch {
     setError("Cannot connect to server. Is the backend running?");
   } finally {

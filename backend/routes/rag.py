@@ -28,9 +28,7 @@ def rag_chat(request: RAGRequest):
     )
 
 
-# =========================================================
-# TEMP PDF FUNCTIONALITY DISABLED
-# =========================================================
+# TEMP PDF FUNCTIONALITY DISABLED for now.
 
 """
 @router.post("/chat/temp/upload")
