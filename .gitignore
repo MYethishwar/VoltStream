@@ -5,3 +5,5 @@ __pycache__/
 .env
 
 firebase-debug.log
+
+backend/sevice_account.json
