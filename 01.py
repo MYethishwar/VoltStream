@@ -1,59 +1,35 @@
-devices = []
+from pymongo import MongoClient
+from dotenv import load_dotenv
+import urllib.parse
+import os
 
+load_dotenv()
 
-def add_device(name, room):
-    
-    device = {
-        "name": name,
-        "room": room
-    }
+username = urllib.parse.quote_plus(os.getenv("MONGO_USER", ""))
+password = urllib.parse.quote_plus(os.getenv("MONGO_PASS", ""))
+cluster = os.getenv("MONGO_CLUSTER", "")
 
-    devices.append(device)
+client = MongoClient(
+    f"mongodb+srv://{username}:{password}@{cluster}/?appName=VoltStream"
+)
 
-    return f"{name} added successfully in {room}"
+db = client["voltstream"]
 
+collection = db["dashboard"]
 
-def list_devices():
+dashboard_data = {
+    "grid_power_kw": 3.4,
+    "solar_generation_kw": 2.1,
+    "net_consumption_kw": 1.3,
+    "battery_percent": 72,
+    "today_usage_kwh": 14.8,
+    "today_solar_kwh": 9.2,
+    "today_cost_inr": 142.5,
+    "co2_saved_kg": 4.6,
+    "grid_status": "connected",
+    "solar_status": "active"
+}
 
-    if not devices:
-        return "No devices found"
+collection.insert_one(dashboard_data)
 
-    result = "Devices:\n"
-
-    for device in devices:
-        result += f"- {device['name']} ({device['room']})\n"
-
-    return result
-
-
-def agent(user_message):
-
-    user_message = user_message.lower()
-
-    if "add" in user_message:
-
-        words = user_message.split()
-
-
-        device_name = words[1]
-        room_name = words[-1]
-
-        return add_device(device_name, room_name)
-
-    
-    elif "list" in user_message:
-
-        return list_devices()
-
-    
-    else:
-
-        return "Sorry, I did not understand."
-
-
-
-print(agent("add tv in bathroom"))
-
-print(agent("add fan in kitchen"))
-
-print(agent("list devices"))
+print("Dashboard data inserted successfully")
