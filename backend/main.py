@@ -11,6 +11,7 @@ from routes.chat import router as chat_router
 
 from routes.rag import router as rag_router
 from routes.pdf import router as pdf_router
+from routes.agent import router as agent_router
 
 app = FastAPI(
     title="VoltStream API",
@@ -38,7 +39,7 @@ app.include_router(chat_router)
 # RAG routes
 app.include_router(rag_router)
 app.include_router(pdf_router)
-
+app.include_router(agent_router)
 
 @app.get("/")
 def root():

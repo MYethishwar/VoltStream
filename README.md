@@ -8,10 +8,16 @@ VoltStream is an AI-powered smart energy management platform developed to monito
 
 ## File Structure
 ![alt text](images/file_structure.png)
+
+
+## Agent Architecture Workflow
+![alt text](images/agent_arch.png)
+
 # VOLTSTREAM (Week 3)
 ## Intelligent Energy Management Platform
 
 ---
+
 
 # Table of Contents
 
