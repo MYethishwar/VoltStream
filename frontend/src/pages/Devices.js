@@ -41,11 +41,7 @@ export default function Devices() {
     return () => window.removeEventListener("agent:device:updated", handleAgentUpdate);
   }, []);
 
-  // // ── Auto-refresh every 5 seconds ────────────────────────────────
-  // useEffect(() => {
-  //   const interval = setInterval(() => fetchDevices(), 10000);
-  //   return () => clearInterval(interval);
-  // }, []);
+
 
   async function fetchDevices() {
     setLoading(true);
@@ -146,7 +142,7 @@ export default function Devices() {
                 <h1 style={{ margin: 0, fontSize: "1.8rem", fontWeight: "800", letterSpacing: "-0.03em", background: "linear-gradient(135deg, #e2e8f0, #94a3b8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                   Device Control Center
                 </h1>
-                <p style={{ margin: 0, color: "#475569", fontSize: "0.82rem", marginTop: "2px" }}>
+                <p style={{ margin: 0, color: "#b1e9fb", fontSize: "0.82rem", marginTop: "2px" }}>
                   Monitor energy usage and manage smart devices
                 </p>
               </div>
@@ -156,16 +152,16 @@ export default function Devices() {
           <button className="add-btn" onClick={() => setShowModal(true)} style={{
             padding: "11px 22px", borderRadius: "12px", border: "none",
             background: "linear-gradient(135deg, #0ea5e9, #6366f1)",
-            color: "#fff", fontWeight: "700", fontSize: "0.85rem",
+            color: "#fdfdfd", fontWeight: "700", fontSize: "0.85rem",
             cursor: "pointer", letterSpacing: "0.01em",
-            boxShadow: "0 4px 18px rgba(6,182,212,0.25)",
+            boxShadow: "0 4px 18px rgba(228, 204, 204, 0.25)",
             display: "flex", alignItems: "center", gap: "7px",
           }}>
             <span style={{ fontSize: "1rem" }}>+</span> Add Device
           </button>
         </div>
 
-        {/* ── STATS ── */}
+        {/* ── STATS ── */} 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "28px" }}>
           {[
             { label: "Total Devices",  value: devices.length,               icon: "🔌", color: "#38bdf8" },
@@ -181,9 +177,9 @@ export default function Devices() {
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
                 <span style={{ fontSize: "1.1rem" }}>{s.icon}</span>
-                <span style={{ color: "#475569", fontSize: "0.72rem", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.07em" }}>{s.label}</span>
+                <span style={{ color: "#fcfeff", fontSize: "0.72rem", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.07em" }}>{s.label}</span>
               </div>
-              <div style={{ fontSize: "1.9rem", fontWeight: "800", color: s.color, letterSpacing: "-0.03em", lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: "1.9rem",  fontWeight: "800", color: s.color, letterSpacing: "-0.03em", lineHeight: 1 }}>{s.value}</div>
             </div>
           ))}
         </div>

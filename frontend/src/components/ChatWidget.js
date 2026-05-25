@@ -168,7 +168,7 @@ export default function ChatWidget() {
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => {
+      setTimeout(()   => {
         inputRef.current?.focus();
       }, 100);
     }
@@ -182,105 +182,80 @@ export default function ChatWidget() {
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || loading) return;
+  if (!input.trim() || loading) return;
 
-    const userMessage = input.trim();
+  const userMessage = input.trim();
+
+  addMessage({
+    role: "user",
+    text: userMessage,
+  });
+
+  setInput("");
+
+  setLoading(true);
+
+  try {
+    const token = localStorage.getItem("vs_token");
+
+    const authHeaders = {
+      "Content-Type": "application/json",
+
+      ...(mode === MODES.AGENT && token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {}),
+    };
+
+    const res = await fetch(
+      `http://localhost:8000${cfg.endpoint}`,
+      {
+        method: "POST",
+
+        headers: authHeaders,
+
+        body: JSON.stringify({
+          message: userMessage,
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.detail || "Error");
+    }
+
+    const botReply =
+      data[cfg.replyKey] ||
+      data.reply ||
+      data.response ||
+      "No response received.";
 
     addMessage({
-      role: "user",
-      text: userMessage,
+      role: "bot",
+      text: botReply,
     });
 
-    setInput("");
-
-    setLoading(true);
-
-    try {
-      const token = localStorage.getItem("vs_token");
-
-      const authHeaders = {
-        "Content-Type": "application/json",
-
-        ...(mode === MODES.AGENT && token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : {}),
-      };
-
-      const res = await fetch(
-        `http://localhost:8000${cfg.endpoint}`,
-        {
-          method: "POST",
-
-          headers: authHeaders,
-
-          body: JSON.stringify({
-            message: userMessage,
-          }),
-        }
+    // edited: keep device refresh only
+    if (mode === MODES.AGENT) {
+      window.dispatchEvent(
+        new CustomEvent("agent:device:updated")
       );
+    }
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || "Error");
-      }
-
-      const botReply = data[cfg.replyKey];
-
-      if (
-        mode === MODES.AGENT &&
-        data.steps &&
-        data.steps.length > 0
-      ) {
-        const traceLines = data.steps.map((s) => {
-          if (s.step === "tool_call") {
-            const args = Object.entries(s.args)
-              .map(
-                ([k, v]) =>
-                  `${k}=${JSON.stringify(v)}`
-              )
-              .join(", ");
-
-            return `⚙️ **Called** \`${s.tool}(${args})\``;
-          }
-
-          if (s.step === "tool_result") {
-            return `✅ **Result** → ${s.result}`;
-          }
-
-          return "";
-        });
-
-        addMessage({
-          role: "bot",
-          text: `### Agent Loop Trace
-
-${traceLines.join("\n\n")}`,
-          isTrace: true,
-        });
-
-        window.dispatchEvent(
-          new CustomEvent("agent:device:updated")
-        );
-      }
-
-      addMessage({
-        role: "bot",
-        text: botReply,
-      });
-    } catch {
-      addMessage({
-        role: "bot",
-        text: `## Connection Error
+  } catch {
+    addMessage({
+      role: "bot",
+      text: `## Connection Error
 
 Could not connect to VoltBot backend.`,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
+  } finally {
+    setLoading(false);
+  } 
+};
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {

@@ -3,11 +3,9 @@ from services.devices_service import update_device_status
 from bson import ObjectId
 from contextvars import ContextVar
 
-# ─── Context variable — set per-request in routes/agent.py ────────────────────
 current_user_id: ContextVar[str] = ContextVar("current_user_id", default="demo_user")
 
 
-# ─── Wattage defaults per device type ─────────────────────────────────────────
 POWER_DEFAULTS = {
     "ac":     1800,
     "fan":    75,
@@ -19,7 +17,6 @@ POWER_DEFAULTS = {
     "other":  100,
 }
 
-# ─── Type alias resolver ───────────────────────────────────────────────────────
 TYPE_ALIASES = {
     "air conditioner": "ac",
     "air conditioning": "ac",
@@ -104,7 +101,6 @@ def find_device(devices: list, device_name: str) -> dict | None:
     return None
 
 
-# ─── Tools ────────────────────────────────────────────────────────────────────
 
 def get_device_status(device_name: str) -> str:
     """
@@ -225,6 +221,12 @@ def add_device(device_name: str, room: str, device_type: str) -> str:
 
     Returns:
         A confirmation string with the created device's details, or an error message.
+        
+        IMPORTANT: If there are multiple devices of the same type
+    (e.g. multiple ACs), always call list_devices() first to get
+    exact names, then use the FULL name including room
+    (e.g. "Kitchen AC" not just "AC") when calling toggle_device().
+
     """
     user_id = current_user_id.get()
 

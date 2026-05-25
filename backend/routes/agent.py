@@ -15,12 +15,10 @@ router = APIRouter(prefix="/api/v1", tags=["Agent"])
 SECRET_KEY = os.getenv("JWT_SECRET", "supersecretkey123")
 
 
-# ─── Request model ─────────────────────────────────────────────────────────────
 class AgentRequest(BaseModel):
     message: str
 
 
-# ─── Session service & runner (module-level singletons) ───────────────────────
 session_service = InMemorySessionService()
 
 runner = Runner(
@@ -30,7 +28,6 @@ runner = Runner(
 )
 
 
-# ─── JWT helper ───────────────────────────────────────────────────────────────
 def extract_user_id(authorization: str) -> str:
     """Decode Bearer token and return the user_id from payload['id']."""
     try:
@@ -41,7 +38,6 @@ def extract_user_id(authorization: str) -> str:
         raise HTTPException(status_code=401, detail="Invalid or missing token")
 
 
-# ─── Agent endpoint ────────────────────────────────────────────────────────────
 @router.post("/agent")
 async def agent_chat(
     request: AgentRequest,
@@ -59,12 +55,8 @@ async def agent_chat(
     5. Respond — return a human-readable reply
     """
 
-    # ── Extract real user_id from JWT ─────────────────────────────────────────
     user_id = extract_user_id(authorization)
 
-    # ── Each user gets their own isolated session ─────────────────────────────
-    # Using user_id as session_id ensures conversation history is per-user
-    # and never leaks between accounts.
     session_id = f"session_{user_id}"
 
     existing = await session_service.get_session(
@@ -79,8 +71,6 @@ async def agent_chat(
             session_id=session_id,
         )
 
-    # ── Set user_id in context so all tools read the correct user ─────────────
-    # This uses Python contextvars — thread-safe, async-safe, invisible to agent
     token_ctx = current_user_id.set(user_id)
 
     response_text = ""
@@ -95,7 +85,6 @@ async def agent_chat(
                 parts=[types.Part(text=request.message)],
             ),
         ):
-            # ── Capture tool calls and results (agent loop trace) ──────────────
             if hasattr(event, "content") and event.content and event.content.parts:
                 for part in event.content.parts:
 
@@ -115,13 +104,11 @@ async def agent_chat(
                             "result": str(fr.response),
                         })
 
-            # ── Final response ─────────────────────────────────────────────────
             if event.is_final_response():
                 if event.content and event.content.parts:
                     response_text = event.content.parts[0].text
 
     finally:
-        # ── Always reset context var after request completes ──────────────────
         current_user_id.reset(token_ctx)
 
     return {
