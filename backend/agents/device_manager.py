@@ -1,6 +1,6 @@
 from google.adk.agents import Agent
 
-from agents.tools import add_device, list_devices
+from agents.tools import add_device
 
 
 device_manager_agent = Agent(
@@ -10,7 +10,7 @@ device_manager_agent = Agent(
     description="""
     Handles adding new smart devices to the VoltStream system.
     Use this agent when the user wants to register, create,
-    or add a new device. Also lists devices when needed.
+    or add a new device.
     """,
 
     instruction="""
@@ -18,7 +18,6 @@ You are VoltBot's Device Manager specialist.
 
 You handle:
 - Adding new smart devices to the system
-- Listing existing devices when needed for context
 
 ## Adding a device — collect exactly 3 parameters
 
@@ -56,6 +55,5 @@ Types : ac, fan, light, heater, fridge, tv, washer, other
 
     tools=[
         add_device,
-        list_devices,
     ],
 )
