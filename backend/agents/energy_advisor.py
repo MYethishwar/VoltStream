@@ -43,7 +43,7 @@ def estimate_monthly_cost(device_type: str, hours_per_day: float) -> str:
         "ac": 1800, "fan": 75, "light": 20,
         "heater": 2000, "fridge": 150, "tv": 120,
         "washer": 500, "other": 100,
-    }
+    }   
     RATE = 8  # ₹8 per kWh
 
     power_w = POWER_W.get(device_type.lower().strip(), 100)

@@ -776,71 +776,86 @@ The VoltStream platform can be extended with several advanced features in future
 # 14. Platform Output Images
 
 ## 1. Home Page
-
-```md
 ![Home Page](images/home_page.png)
-```
-![alt text](image.png)
+
 ---
 
-## 2. Sign in / Register Page
-
-```md
-![Sign In Page](images/sign-in_page)
+## 2. Sign In / Register Page
+![Sign In Page](images/sign-in_page.png)
 
 ---
 
 ## 3. Dashboard Page
-
-```md
 ![Dashboard Page](images/dashboard.png)
-```
 
 ---
 
 ## 4. Analytics Page
-
-```md
 ![Analytics Page](images/analytics.png)
-```
 
 ---
 
 ## 5. Devices Page
-
-```md
 ![Devices Page](images/devices.png)
-```
 
 ---
 
 ## 6. Billing Page
-
-```md
 ![Billing Page](images/billing.png)
-```
 
 ---
 
 ## 7. Terminologies Page
-
-```md
 ![Terminologies Page](images/terminologies.png)
-```
 
 ---
 
 ## 8. General Conversation Bot
-
-```md
 ![General Bot](images/conv_bot.png)
-```
 
 ---
 
 ## 9. RAG Based Bot
-
-```md
 ![RAG Bot](images/rag_bot.png)
-```
+
+---
+
+## 10. Agent Mode — Adding a Single Device
+![Agent Add Single Device](images/agent_add_single.png)
+
+---
+
+## 11. Agent Mode — Adding Multiple Devices
+![Agent Add Multiple Devices](images/agent_add_multiple.png)
+
+---
+
+## 12. Agent Mode — Checking Device Status
+![Agent Device Status](images/agent_status.png)
+
+---
+
+## 13. Agent Mode — Turning On Multiple Devices
+![Agent Toggle Multiple](images/agent_toggle_multiple.png)
+
+---
+
+## 14. Agent Mode — Energy Tips
+![Agent Energy Tips](images/agent_energy_tips.png)
+
+---
+
+## 15. Agent Mode — Cost Estimation
+![Agent Cost Estimation](images/agent_cost_estimation.png)
+
+---
+
+## 16. ADK Web — Agent Loop Trace
+![ADK Web Trace](images/adk_web_trace.png)
+
+---
+
+## 17. ChatWidget — Agent Mode
+![ChatWidget Agent Mode](images/chatwidget_agent.png)
+
 ---
