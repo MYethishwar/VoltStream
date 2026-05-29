@@ -5,7 +5,7 @@ from agents.energy_advisor import energy_advisor_agent
 
 router_agent = Agent(
     name="voltstream_router_agent",
-    model="gemini-2.5-flash",
+    model="gemini-2.5-flash-lite",
     description="VoltStream root router — delegates to specialist agents",
     instruction="""
 You are VoltBot, a smart home assistant router for VoltStream.

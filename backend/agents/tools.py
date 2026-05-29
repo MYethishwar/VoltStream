@@ -2,45 +2,27 @@ from database.connection import db
 from services.devices_service import update_device_status
 from bson import ObjectId
 from contextvars import ContextVar
+from datetime import datetime, timedelta
 
 current_user_id: ContextVar[str] = ContextVar("current_user_id", default="demo_user")
 
-
 POWER_DEFAULTS = {
-    "ac":     1800,
-    "fan":    75,
-    "light":  20,
-    "heater": 2000,
-    "fridge": 150,
-    "tv":     120,
-    "washer": 500,
-    "other":  100,
+    "ac": 1800, "fan": 75, "light": 20, "heater": 2000,
+    "fridge": 150, "tv": 120, "washer": 500, "other": 100,
 }
 
 TYPE_ALIASES = {
-    "air conditioner": "ac",
-    "air conditioning": "ac",
-    "ac": "ac",
-    "fan": "fan",
-    "ceiling fan": "fan",
-    "table fan": "fan",
-    "light": "light",
-    "lights": "light",
-    "bulb": "light",
-    "lamp": "light",
-    "heater": "heater",
-    "geyser": "heater",
-    "water heater": "heater",
-    "fridge": "fridge",
-    "refrigerator": "fridge",
-    "freezer": "fridge",
-    "tv": "tv",
-    "television": "tv",
-    "washer": "washer",
-    "washing machine": "washer",
+    "air conditioner": "ac", "air conditioning": "ac", "ac": "ac",
+    "fan": "fan", "ceiling fan": "fan", "table fan": "fan",
+    "light": "light", "lights": "light", "bulb": "light", "lamp": "light",
+    "heater": "heater", "geyser": "heater", "water heater": "heater",
+    "fridge": "fridge", "refrigerator": "fridge", "freezer": "fridge",
+    "tv": "tv", "television": "tv",
+    "washer": "washer", "washing machine": "washer",
 }
 
 VALID_ROOMS = ["Living Room", "Bedroom", "Kitchen", "Bathroom", "Office", "Garage"]
+RATE_PER_KWH = 8  # ₹8/kWh
 
 
 def resolve_type(raw_type: str) -> str:
@@ -48,239 +30,214 @@ def resolve_type(raw_type: str) -> str:
 
 
 def find_device(devices: list, device_name: str) -> dict | None:
-    """
-    Smart device matcher with 3-tier priority:
-      1. Exact name match (case-insensitive)         → "fan" matches "fan" only
-      2. Full-word contained match                   → "living room fan" matches "Living Room Fan"
-      3. Partial substring match (last resort)       → "ac" matches "Living Room AC"
-
-    Returns the SINGLE best match or None.
-    Never returns duplicates — always the most specific match wins.
-    """
     query = device_name.strip().lower()
-
-    # Tier 1 — exact match
     for device in devices:
         if device["name"].lower() == query:
             return device
-
-    # Tier 2 — query is fully contained in name AND name words are all in query
-    # e.g. "living room fan" → matches "Living Room Fan" but not "Bedroom Fan"
     tier2 = []
     for device in devices:
-        db_name = device["name"].lower()
-        db_words = set(db_name.split())
-        q_words  = set(query.split())
-        # Both directions must overlap meaningfully
+        db_words = set(device["name"].lower().split())
+        q_words = set(query.split())
         if db_words == q_words or db_words.issubset(q_words) or q_words.issubset(db_words):
             tier2.append(device)
-
     if len(tier2) == 1:
         return tier2[0]
-
-    # If multiple tier-2 matches, pick the one whose name length is closest to query
     if len(tier2) > 1:
-        tier2.sort(key=lambda d: abs(len(d["name"]) - len(device_name)))
-        return tier2[0]
-
-    # Tier 3 — substring fallback (only if nothing else matched)
-    tier3 = []
-    for device in devices:
-        db_name = device["name"].lower()
-        if query in db_name or db_name in query:
-            tier3.append(device)
-    
+        return sorted(tier2, key=lambda d: abs(len(d["name"]) - len(device_name)))[0]
+    tier3 = [d for d in devices if query in d["name"].lower() or d["name"].lower() in query]
     if len(tier3) == 1:
         return tier3[0]
-
-    # Multiple partial matches — return closest length match
     if len(tier3) > 1:
-        tier3.sort(key=lambda d: abs(len(d["name"]) - len(device_name)))
-        return tier3[0]
-
+        return sorted(tier3, key=lambda d: abs(len(d["name"]) - len(device_name)))[0]
     return None
 
 
+# ── Device control tools ───────────────────────────────────────────────────────
 
 def get_device_status(device_name: str) -> str:
-    """
-    Get the current ON/OFF status of a smart device by name.
-
-    Args:
-        device_name: The name of the device to check. Use the exact device name
-                     from list_devices() for best results.
-
-    Returns:
-        A string describing the current status of the device.
-    """
+    """Get the current ON/OFF status of a device by name."""
     user_id = current_user_id.get()
     devices = list(db["devices"].find({"user_id": user_id}))
-
     matched = find_device(devices, device_name)
     if not matched:
-        names = [d["name"] for d in devices]
-        return (
-            f"No device found matching '{device_name}'. "
-            f"Available devices: {', '.join(names)}."
-        )
-
-    status = "ON" if matched["status"] else "OFF"
-    return (
-        f"{matched['name']} ({matched['room']}) is currently {status}."
-    )
+        return f"No device matching '{device_name}'. Available: {', '.join(d['name'] for d in devices)}."
+    return f"{matched['name']} ({matched['room']}) is {'ON' if matched['status'] else 'OFF'}."
 
 
 def toggle_device(device_name: str, state: bool) -> str:
-    """
-    Turn a specific smart device ON or OFF by its exact name.
-
-    IMPORTANT: Always use the exact device name as returned by list_devices().
-    If the user says "turn on all devices", call list_devices() first, then
-    call toggle_device() once per device using the exact name from the list.
-
-    Args:
-        device_name: The EXACT name of the device (e.g. "Living Room Fan",
-                     "Bedroom AC"). Do NOT use generic names like "fan" if
-                     there are multiple fans — use the full name instead.
-        state: True to turn ON, False to turn OFF.
-
-    Returns:
-        A string confirming the action or reporting an error.
-    """
+    """Turn a device ON (state=True) or OFF (state=False). Use exact name from list_devices()."""
     user_id = current_user_id.get()
     devices = list(db["devices"].find({"user_id": user_id}))
-
     matched = find_device(devices, device_name)
     if not matched:
-        names = [d["name"] for d in devices]
-        return (
-            f"No device found matching '{device_name}'. "
-            f"Available: {', '.join(names)}."
-        )
-
-    # ── Idempotency check — prevents duplicate writes ─────────────────────────
+        return f"No device matching '{device_name}'. Available: {', '.join(d['name'] for d in devices)}."
     action = "ON" if state else "OFF"
     if matched["status"] == state:
-        return (
-            f"{matched['name']} is already {action}. No change made."
-        )
-
-    # ── Perform the update ────────────────────────────────────────────────────
-    update_device_status(
-        str(matched["_id"]),
-        state,
-        user_id
-    )
-
-    return (
-        f"{matched['name']} ({matched['room']}) has been turned {action} successfully."
-    )
+        return f"{matched['name']} is already {action}."
+    update_device_status(str(matched["_id"]), state, user_id)
+    _log_device_event(user_id, str(matched["_id"]), matched["name"], matched["type"], matched["power_w"], action)
+    return f"{matched['name']} ({matched['room']}) turned {action}."
 
 
 def list_devices() -> str:
-    """
-    List all smart devices for the current user with their exact names,
-    types, rooms, and current ON/OFF status.
-
-    Always call this first before toggle_device() when:
-    - The user wants to control multiple devices at once
-    - You are unsure of the exact device name
-    - The user says "all devices", "everything", etc.
-
-    Returns:
-        A formatted list of all devices with their exact names and statuses.
-    """
+    """List all devices with exact names, types, rooms, and status."""
     user_id = current_user_id.get()
     devices = list(db["devices"].find({"user_id": user_id}))
-
     if not devices:
-        return "No devices found for your account."
-
-    lines = ["Available devices (use exact names when controlling them):"]
-    for device in devices:
-        status = "ON" if device["status"] else "OFF"
-        lines.append(
-            f"  - \"{device['name']}\" | {device['type']} | {device['room']} | {status}"
-        )
-
+        return "No devices found."
+    lines = ["Your devices:"]
+    for d in devices:
+        lines.append(f'  "{d["name"]}" | {d["type"]} | {d["room"]} | {"ON" if d["status"] else "OFF"}')
     return "\n".join(lines)
 
 
 def add_device(device_name: str, room: str, device_type: str) -> str:
-    """
-    Add a new smart device to the VoltStream system for the current user.
-
-    Args:
-        device_name: Clean, properly capitalized name (e.g. "Bedroom AC", "Kitchen Light").
-        room: The room. Must be one of:
-              Living Room, Bedroom, Kitchen, Bathroom, Office, Garage.
-              Infer from context: "my bedroom" → "Bedroom", "the kitchen" → "Kitchen".
-              If truly unclear, ask the user.
-        device_type: Device type in any form — "air conditioner", "tv", "washing machine"
-                     are all valid and normalized automatically.
-
-    Returns:
-        A confirmation string with the created device's details, or an error message.
-        
-        IMPORTANT: If there are multiple devices of the same type
-    (e.g. multiple ACs), always call list_devices() first to get
-    exact names, then use the FULL name including room
-    (e.g. "Kitchen AC" not just "AC") when calling toggle_device().
-
-    """
+    """Add a new device. room must be one of the valid rooms. device_type is normalized automatically."""
     user_id = current_user_id.get()
-
-    # ── Normalize room ─────────────────────────────────────────────────────────
     room_normalized = room.strip().title()
-    matched_room = None
-    for valid in VALID_ROOMS:
-        if (
-            room_normalized.lower() in valid.lower()
-            or valid.lower() in room_normalized.lower()
-        ):
-            matched_room = valid
-            break
-
+    matched_room = next((v for v in VALID_ROOMS if room_normalized.lower() in v.lower() or v.lower() in room_normalized.lower()), None)
     if not matched_room:
-        return (
-            f"Room '{room}' is not recognized. "
-            f"Please use one of: {', '.join(VALID_ROOMS)}."
-        )
-
-    # ── Normalize device type ──────────────────────────────────────────────────
+        return f"Room '{room}' not recognized. Use: {', '.join(VALID_ROOMS)}."
     canonical_type = resolve_type(device_type)
     power_w = POWER_DEFAULTS.get(canonical_type, 100)
-
-    # ── Duplicate check (same user + name + room) ──────────────────────────────
     existing = db["devices"].find_one({
         "user_id": user_id,
-        "name":    {"$regex": f"^{device_name.strip()}$", "$options": "i"},
-        "room":    matched_room,
+        "name": {"$regex": f"^{device_name.strip()}$", "$options": "i"},
+        "room": matched_room,
     })
     if existing:
-        return (
-            f"A device named '{device_name}' already exists in {matched_room}. "
-            f"Please use a different name."
-        )
+        return f"'{device_name}' already exists in {matched_room}. Use a different name."
+    result = db["devices"].insert_one({
+        "user_id": user_id, "name": device_name.strip(), "room": matched_room,
+        "type": canonical_type, "power_w": power_w, "status": False,
+    })
+    return f"'{device_name}' added in {matched_room} ({canonical_type}, {power_w}W). ID: {result.inserted_id}"
 
-    # ── Insert ─────────────────────────────────────────────────────────────────
-    new_device = {
+
+# ── Usage history tools (NEW — Week 5) ────────────────────────────────────────
+
+def _log_device_event(user_id: str, device_id: str, device_name: str, device_type: str, power_w: int, action: str):
+    """Internal: record ON/OFF event to usage_history collection."""
+    db["usage_history"].insert_one({
         "user_id": user_id,
-        "name":    device_name.strip(),
-        "room":    matched_room,
-        "type":    canonical_type,
+        "device_id": device_id,
+        "device_name": device_name,
+        "device_type": device_type,
         "power_w": power_w,
-        "status":  False,
-    }
+        "action": action,
+        "timestamp": datetime.utcnow(),
+    })
 
-    result    = db["devices"].insert_one(new_device)
-    device_id = str(result.inserted_id)
 
-    return (
-        f"'{device_name}' added successfully!\n"
-        f"  Room   : {matched_room}\n"
-        f"  Type   : {canonical_type}\n"
-        f"  Power  : {power_w}W\n"
-        f"  Status : OFF (default)\n"
-        f"  ID     : {device_id}"
-    )
+def get_usage_history(days: int = 7) -> str:
+    """
+    Retrieve and summarize device usage for the past N days (default 7).
+    Returns per-device runtime hours, kWh consumed, and estimated cost in ₹.
+
+    Args:
+        days: Number of past days to analyze (1–30).
+    """
+    user_id = current_user_id.get()
+    since = datetime.utcnow() - timedelta(days=max(1, min(days, 30)))
+    events = list(db["usage_history"].find(
+        {"user_id": user_id, "timestamp": {"$gte": since}},
+        sort=[("timestamp", 1)]
+    ))
+
+    if not events:
+        return f"No usage data found for the past {days} days. Start controlling devices via the Agent to build history."
+
+    # Compute runtime per device by pairing ON→OFF events
+    sessions: dict[str, dict] = {}  # device_id → {name, type, power_w, total_minutes, on_at}
+    for e in events:
+        did = e["device_id"]
+        if did not in sessions:
+            sessions[did] = {
+                "name": e["device_name"], "type": e["device_type"],
+                "power_w": e["power_w"], "total_minutes": 0, "on_at": None,
+            }
+        s = sessions[did]
+        if e["action"] == "ON":
+            s["on_at"] = e["timestamp"]
+        elif e["action"] == "OFF" and s["on_at"]:
+            s["total_minutes"] += (e["timestamp"] - s["on_at"]).total_seconds() / 60
+            s["on_at"] = None
+
+    lines = [f"Usage summary — last {days} days:", ""]
+    total_cost = 0.0
+    for did, s in sessions.items():
+        hours = s["total_minutes"] / 60
+        kwh = (s["power_w"] / 1000) * hours
+        cost = kwh * RATE_PER_KWH
+        total_cost += cost
+        lines.append(f"  {s['name']} ({s['type']}): {hours:.1f}h → {kwh:.2f} kWh → ₹{cost:.2f}")
+
+    lines.append(f"\n  Total estimated cost: ₹{total_cost:.2f}")
+    return "\n".join(lines)
+
+
+def get_peak_hours() -> str:
+    """
+    Identify the peak usage hours in the last 7 days — when the most devices
+    were ON simultaneously. Useful for load-shifting advice.
+    """
+    user_id = current_user_id.get()
+    since = datetime.utcnow() - timedelta(days=7)
+    events = list(db["usage_history"].find({"user_id": user_id, "timestamp": {"$gte": since}}))
+
+    if not events:
+        return "No usage data to analyze peak hours yet."
+
+    hour_counts: dict[int, int] = {h: 0 for h in range(24)}
+    for e in events:
+        if e["action"] == "ON":
+            hour_counts[e["timestamp"].hour] += 1
+
+    top_hours = sorted(hour_counts.items(), key=lambda x: -x[1])[:4]
+    lines = ["Peak usage hours (last 7 days):"]
+    for hr, count in top_hours:
+        label = f"{hr:02d}:00–{hr+1:02d}:00"
+        lines.append(f"  {label} → {count} device activations")
+
+    # Flag if peak overlaps expensive grid hours (6–10 PM in India)
+    peak_hour = top_hours[0][0] if top_hours else -1
+    if 18 <= peak_hour <= 22:
+        lines.append("\n  ⚠ Peak overlaps high-tariff grid hours (6–10 PM). Consider shifting to morning.")
+    return "\n".join(lines)
+
+
+def get_smart_schedule() -> str:
+    """
+    Suggest an optimized device schedule based on the user's usage history.
+    Identifies devices that run at expensive hours and recommends shift times.
+    """
+    user_id = current_user_id.get()
+    since = datetime.utcnow() - timedelta(days=7)
+    events = list(db["usage_history"].find({"user_id": user_id, "timestamp": {"$gte": since}}))
+
+    if not events:
+        return "No usage history yet to generate a schedule. Use Agent mode to control devices first."
+
+    # Group by device type and hour
+    device_hours: dict[str, list[int]] = {}
+    for e in events:
+        if e["action"] == "ON":
+            dt = e["device_type"]
+            device_hours.setdefault(dt, []).append(e["timestamp"].hour)
+
+    suggestions = []
+    for dtype, hours in device_hours.items():
+        avg_hour = sum(hours) / len(hours)
+        if dtype == "washer" and avg_hour >= 18:
+            suggestions.append("  Washer: shift to 6–8 AM (cold morning wash saves heating energy + off-peak tariff)")
+        if dtype == "ac" and avg_hour >= 14:
+            suggestions.append("  AC: pre-cool at 12–1 PM (before peak sun) then raise setpoint to 26°C by 3 PM")
+        if dtype == "heater" and avg_hour >= 20:
+            suggestions.append("  Water heater: use timer — heat at 5:30 AM instead of evening peak")
+        if dtype == "light" and avg_hour >= 19:
+            suggestions.append("  Lights: install motion sensors to cut idle-on time by ~40%")
+
+    if not suggestions:
+        return "Your current schedule looks efficient! No major shifts recommended."
+
+    return "Smart schedule suggestions based on your usage:\n" + "\n".join(suggestions)

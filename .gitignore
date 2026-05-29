@@ -25,6 +25,10 @@ yarn-error.log*
 .vscode/
 .idea/
 
+# MS Word temp files
+~$*.docx
+*.tmp
+
 # misc
 .DS_Store
 .cache/

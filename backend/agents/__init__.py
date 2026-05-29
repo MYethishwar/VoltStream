@@ -1,7 +1,4 @@
-from .router import router_agent
+from .orchestrator import orchestrator
 
-# Export as root_agent so ADK web auto-discovers it
-# and routes/agent.py works without changes
-root_agent = router_agent
-
-__all__ = ["root_agent", "router_agent"]
+root_agent = orchestrator
+__all__ = ["root_agent", "orchestrator"]
