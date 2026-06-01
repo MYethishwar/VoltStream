@@ -5,11 +5,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-api_key = os.getenv("GEMINI_API_KEY")
-print(f"DEBUG - API Key loaded: {api_key[:10] if api_key else 'NOT FOUND'}")
-
-client = genai.Client(api_key=api_key)
-
+client = genai.Client(
+    vertexai=True,
+    project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+    location=os.getenv("GOOGLE_CLOUD_LOCATION")
+)
 SYSTEM_PROMPT = """
 Your role is to help users with:
 

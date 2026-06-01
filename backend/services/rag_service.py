@@ -19,9 +19,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
+    vertexai=True,
+    project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+    location=os.getenv("GOOGLE_CLOUD_LOCATION")
 )
-
 # def process_temp_pdf(pdf_path, pdf_name):
 
 #     clear_temp_collection()

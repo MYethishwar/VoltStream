@@ -26,6 +26,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import os
+
+print("PROJECT:", os.getenv("GOOGLE_CLOUD_PROJECT"))
+print("LOCATION:", os.getenv("GOOGLE_CLOUD_LOCATION"))
+print("VERTEX:", os.getenv("GOOGLE_GENAI_USE_VERTEXAI"))
+print("CREDS:", os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(analytics_router)

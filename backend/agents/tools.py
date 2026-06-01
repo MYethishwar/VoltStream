@@ -52,6 +52,21 @@ def find_device(devices: list, device_name: str) -> dict | None:
     return None
 
 
+from typing import Any
+
+
+def request_confirmation(action: str, device_names: list[str]) -> dict[str, Any]:
+    """Ask user for approval."""
+    return {
+        "status": "pending",
+        "action": action,
+        "devices": device_names,
+        "message": (
+            f"About to turn {action} {len(device_names)} device(s): "
+            f"{', '.join(device_names)}"
+        ),
+    }
+
 # ── Device control tools ───────────────────────────────────────────────────────
 
 def get_device_status(device_name: str) -> str:
@@ -241,3 +256,22 @@ def get_smart_schedule() -> str:
         return "Your current schedule looks efficient! No major shifts recommended."
 
     return "Smart schedule suggestions based on your usage:\n" + "\n".join(suggestions)
+
+
+from services.rag_service import get_rag_response
+
+
+def get_energy_knowledge(query: str) -> str:
+    """
+    Search VoltStream knowledge base for energy saving guidance.
+
+    Args:
+        query: question to search in uploaded PDF knowledge base
+    """
+
+    result = get_rag_response(query)
+
+    if isinstance(result, dict):
+        return result.get("response", "No recommendations found.")
+
+    return str(result)

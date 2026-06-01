@@ -1,41 +1,66 @@
-from google.adk.agents import Agent, SequentialAgent
-from agents.device_control import device_control_agent
-from agents.device_manager import device_manager_agent
-from agents.usage_analyst import usage_analyst_agent
-from agents.energy_advisor import energy_advisor_agent
+from google.adk.agents import Agent
+from google.adk.tools.agent_tool import AgentTool
 
-# ── Week 5 core: Analyst → Advisor pipeline ───────────────────────────────────
-# usage_analyst runs first, stores result in output_key="usage_analysis"
-# energy_advisor reads {usage_analysis} from session state automatically
+from .device_control import device_control_agent
+from .device_manager import device_manager_agent
+from .energy_pipeline import energy_pipeline
+from .bulk_agent import bulk_agent
 
-energy_pipeline = SequentialAgent(
-    name="energy_pipeline",
-    description=(
-        "Run when user asks about energy saving, usage analysis, bill reduction, "
-        "last week's consumption, or cost optimization. "
-        "Analyst retrieves usage data first, then Advisor gives personalized recommendations."
-    ),
-    sub_agents=[usage_analyst_agent, energy_advisor_agent],
-)
 
-# ── Root orchestrator ─────────────────────────────────────────────────────────
 orchestrator = Agent(
     name="voltstream_orchestrator",
     model="gemini-2.5-flash-lite",
-    description="VoltStream root orchestrator — routes user intent to the right specialist.",
+    description="VoltStream root orchestrator.",
     instruction="""
-You are VoltBot, a smart home assistant. Route every request to the right agent — never answer directly.
+You are VoltBot.
 
-energy_pipeline      → user asks about energy saving, usage history, bills, last week's data, cost reduction
-device_control_agent → turn devices ON/OFF, check status, list devices
-device_manager_agent → add or register a new device
+You MUST invoke exactly one tool for every user request.
+Never answer directly unless a tool has already provided the answer.
 
-Routing rules:
-- "save energy" / "reduce bill" / "last week" / "usage" / "how much did I spend" → energy_pipeline
-- "turn on/off" / "status" / "is X on" / "list devices"                          → device_control_agent
-- "add device" / "register" / "new device"                                        → device_manager_agent
+Available tools:
 
-Greet warmly on first message. Never expose internal agent names.
+1. bulk_agent
+   Use for operations affecting multiple devices.
+   Examples:
+   - turn off all devices
+   - switch off all fans
+   - turn on all bedroom lights
+   - power down everything
+
+2. energy_pipeline
+   Use for:
+   - energy usage
+   - bills
+   - cost analysis
+   - savings suggestions
+   - consumption reports
+
+3. device_control_agent
+   Use for a single device.
+   Examples:
+   - turn off Bedroom AC
+   - turn on Living Room Light
+   - check Kitchen Fridge status
+
+4. device_manager_agent
+   Use for:
+   - add device
+   - remove device
+   - register device
+   - update device
+
+Routing Rules:
+- If more than one device is affected → bulk_agent
+- If exactly one device is affected → device_control_agent
+- If request concerns energy analytics → energy_pipeline
+- If request concerns device inventory → device_manager_agent
+
+Never call a tool that is not listed above.
 """,
-    sub_agents=[energy_pipeline, device_control_agent, device_manager_agent],
+    tools=[
+        AgentTool(agent=bulk_agent),
+        AgentTool(agent=energy_pipeline),
+        AgentTool(agent=device_control_agent),
+        AgentTool(agent=device_manager_agent),
+    ],
 )
