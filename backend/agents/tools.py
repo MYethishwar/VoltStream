@@ -1,8 +1,59 @@
 from database.connection import db
 from services.devices_service import update_device_status
-from bson import ObjectId
+from services.rag_service import get_rag_response          # FIX: moved to top
 from contextvars import ContextVar
 from datetime import datetime, timedelta
+
+from functools import wraps
+
+
+
+def device_tool(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        print(f"\n🔵 DEVICE TOOL: {func.__name__}")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def energy_tool(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        print(f"\n🟢 ENERGY TOOL: {func.__name__}")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def bulk_tool(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        print(f"\n🟠 BULK TOOL: {func.__name__}")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def rag_tool(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        print(f"\n🟣 RAG TOOL: {func.__name__}")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def db_tool(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        print(f"\n🟡 DB TOOL: {func.__name__}")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def hitl_tool(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        print(f"\n🔴 HITL CHECKPOINT: {func.__name__}")
+        return func(*args, **kwargs)
+    return wrapper
 
 current_user_id: ContextVar[str] = ContextVar("current_user_id", default="demo_user")
 
@@ -16,6 +67,7 @@ TYPE_ALIASES = {
     "fan": "fan", "ceiling fan": "fan", "table fan": "fan",
     "light": "light", "lights": "light", "bulb": "light", "lamp": "light",
     "heater": "heater", "geyser": "heater", "water heater": "heater",
+    "geysar": "heater",
     "fridge": "fridge", "refrigerator": "fridge", "freezer": "fridge",
     "tv": "tv", "television": "tv",
     "washer": "washer", "washing machine": "washer",
@@ -52,23 +104,8 @@ def find_device(devices: list, device_name: str) -> dict | None:
     return None
 
 
-from typing import Any
-
-
-def request_confirmation(action: str, device_names: list[str]) -> dict[str, Any]:
-    """Ask user for approval."""
-    return {
-        "status": "pending",
-        "action": action,
-        "devices": device_names,
-        "message": (
-            f"About to turn {action} {len(device_names)} device(s): "
-            f"{', '.join(device_names)}"
-        ),
-    }
-
 # ── Device control tools ───────────────────────────────────────────────────────
-
+@device_tool
 def get_device_status(device_name: str) -> str:
     """Get the current ON/OFF status of a device by name."""
     user_id = current_user_id.get()
@@ -79,6 +116,7 @@ def get_device_status(device_name: str) -> str:
     return f"{matched['name']} ({matched['room']}) is {'ON' if matched['status'] else 'OFF'}."
 
 
+@device_tool
 def toggle_device(device_name: str, state: bool) -> str:
     """Turn a device ON (state=True) or OFF (state=False). Use exact name from list_devices()."""
     user_id = current_user_id.get()
@@ -94,6 +132,7 @@ def toggle_device(device_name: str, state: bool) -> str:
     return f"{matched['name']} ({matched['room']}) turned {action}."
 
 
+@device_tool
 def list_devices() -> str:
     """List all devices with exact names, types, rooms, and status."""
     user_id = current_user_id.get()
@@ -105,12 +144,15 @@ def list_devices() -> str:
         lines.append(f'  "{d["name"]}" | {d["type"]} | {d["room"]} | {"ON" if d["status"] else "OFF"}')
     return "\n".join(lines)
 
-
+@db_tool    
 def add_device(device_name: str, room: str, device_type: str) -> str:
     """Add a new device. room must be one of the valid rooms. device_type is normalized automatically."""
     user_id = current_user_id.get()
     room_normalized = room.strip().title()
-    matched_room = next((v for v in VALID_ROOMS if room_normalized.lower() in v.lower() or v.lower() in room_normalized.lower()), None)
+    matched_room = next(
+        (v for v in VALID_ROOMS if room_normalized.lower() in v.lower() or v.lower() in room_normalized.lower()),
+        None
+    )
     if not matched_room:
         return f"Room '{room}' not recognized. Use: {', '.join(VALID_ROOMS)}."
     canonical_type = resolve_type(device_type)
@@ -129,7 +171,103 @@ def add_device(device_name: str, room: str, device_type: str) -> str:
     return f"'{device_name}' added in {matched_room} ({canonical_type}, {power_w}W). ID: {result.inserted_id}"
 
 
-# ── Usage history tools (NEW — Week 5) ────────────────────────────────────────
+# ── Bulk operation tools ───────────────────────────────────────────────────────
+@bulk_tool
+def bulk_toggle_devices(filter_type: str, filter_room: str, state: bool) -> str:
+    """
+    Toggle multiple devices at once based on optional type and room filters.
+    Executes immediately — confirmation must be done before calling this.
+
+    Args:
+        filter_type: device type to filter by (e.g. 'fan', 'ac', 'all' for no filter)
+        filter_room: room to filter by (e.g. 'Bedroom', 'all' for no filter)
+        state: True=ON, False=OFF
+    """
+    user_id = current_user_id.get()
+    query: dict = {"user_id": user_id}
+
+    if filter_type and filter_type.lower() != "all":
+        canonical = resolve_type(filter_type)
+        query["type"] = canonical
+
+    if filter_room and filter_room.lower() != "all":
+        room_normalized = filter_room.strip().title()
+        matched_room = next(
+            (v for v in VALID_ROOMS if room_normalized.lower() in v.lower() or v.lower() in room_normalized.lower()),
+            None
+        )
+        if matched_room:
+            query["room"] = matched_room
+
+    devices = list(db["devices"].find(query))
+    if not devices:
+        return "No matching devices found."
+
+    action = "ON" if state else "OFF"
+    results = []
+    success = 0
+    failed = 0
+
+    for device in devices:
+        try:
+            if device["status"] != state:
+                update_device_status(str(device["_id"]), state, user_id)
+                _log_device_event(
+                    user_id, str(device["_id"]),
+                    device["name"], device["type"],
+                    device["power_w"], action
+                )
+            results.append(f'  ✓ {device["name"]} ({device["room"]}) → {action}')
+            success += 1
+        except Exception as e:
+            results.append(f'  ✗ {device["name"]} failed: {e}')
+            failed += 1
+
+    summary = f"Bulk action complete: {success} succeeded, {failed} failed.\n"
+    return summary + "\n".join(results)
+
+
+@hitl_tool
+@bulk_tool
+def preview_bulk_toggle(filter_type: str, filter_room: str, state: bool) -> str:
+    """
+    Preview which devices will be affected by a bulk toggle — WITHOUT executing it.
+    Call this FIRST to show the user what will happen, then ask for confirmation.
+
+    Args:
+        filter_type: device type to filter by (e.g. 'fan', 'ac', 'all' for no filter)
+        filter_room: room to filter by (e.g. 'Bedroom', 'all' for no filter)
+        state: True=ON, False=OFF
+    """
+    user_id = current_user_id.get()
+    query: dict = {"user_id": user_id}
+
+    if filter_type and filter_type.lower() != "all":
+        canonical = resolve_type(filter_type)
+        query["type"] = canonical
+
+    if filter_room and filter_room.lower() != "all":
+        room_normalized = filter_room.strip().title()
+        matched_room = next(
+            (v for v in VALID_ROOMS if room_normalized.lower() in v.lower() or v.lower() in room_normalized.lower()),
+            None
+        )
+        if matched_room:
+            query["room"] = matched_room
+
+    devices = list(db["devices"].find(query))
+    if not devices:
+        return "No matching devices found."
+
+    action = "ON" if state else "OFF"
+    lines = [f"The following {len(devices)} device(s) will be turned {action}:"]
+    for d in devices:
+        lines.append(f'  - "{d["name"]}" | {d["type"]} | {d["room"]} | currently {"ON" if d["status"] else "OFF"}')
+    lines.append('\nReply "yes" to confirm or "no" to cancel.')
+    return "\n".join(lines)
+
+
+# ── Usage history tools ────────────────────────────────────────────────────────
 
 def _log_device_event(user_id: str, device_id: str, device_name: str, device_type: str, power_w: int, action: str):
     """Internal: record ON/OFF event to usage_history collection."""
@@ -143,7 +281,7 @@ def _log_device_event(user_id: str, device_id: str, device_name: str, device_typ
         "timestamp": datetime.utcnow(),
     })
 
-
+@energy_tool
 def get_usage_history(days: int = 7) -> str:
     """
     Retrieve and summarize device usage for the past N days (default 7).
@@ -160,10 +298,12 @@ def get_usage_history(days: int = 7) -> str:
     ))
 
     if not events:
-        return f"No usage data found for the past {days} days. Start controlling devices via the Agent to build history."
+        return (
+            f"No usage data found for the past {days} days. "
+            "Call the /api/v1/agent/seed-usage endpoint first to populate demo data."
+        )
 
-    # Compute runtime per device by pairing ON→OFF events
-    sessions: dict[str, dict] = {}  # device_id → {name, type, power_w, total_minutes, on_at}
+    sessions: dict[str, dict] = {}
     for e in events:
         did = e["device_id"]
         if did not in sessions:
@@ -180,28 +320,35 @@ def get_usage_history(days: int = 7) -> str:
 
     lines = [f"Usage summary — last {days} days:", ""]
     total_cost = 0.0
+    highest_device = None
+    highest_kwh = 0.0
+
     for did, s in sessions.items():
         hours = s["total_minutes"] / 60
         kwh = (s["power_w"] / 1000) * hours
         cost = kwh * RATE_PER_KWH
         total_cost += cost
+        if kwh > highest_kwh:
+            highest_kwh = kwh
+            highest_device = s["name"]
         lines.append(f"  {s['name']} ({s['type']}): {hours:.1f}h → {kwh:.2f} kWh → ₹{cost:.2f}")
 
-    lines.append(f"\n  Total estimated cost: ₹{total_cost:.2f}")
+    lines.append(f"\n  Highest consuming device: {highest_device or 'N/A'}")
+    lines.append(f"  Total estimated cost: ₹{total_cost:.2f}")
     return "\n".join(lines)
 
-
+@energy_tool
 def get_peak_hours() -> str:
     """
     Identify the peak usage hours in the last 7 days — when the most devices
-    were ON simultaneously. Useful for load-shifting advice.
+    were ON simultaneously.
     """
     user_id = current_user_id.get()
     since = datetime.utcnow() - timedelta(days=7)
     events = list(db["usage_history"].find({"user_id": user_id, "timestamp": {"$gte": since}}))
 
     if not events:
-        return "No usage data to analyze peak hours yet."
+        return "No usage data to analyze peak hours yet. Seed usage data first."
 
     hour_counts: dict[int, int] = {h: 0 for h in range(24)}
     for e in events:
@@ -211,29 +358,26 @@ def get_peak_hours() -> str:
     top_hours = sorted(hour_counts.items(), key=lambda x: -x[1])[:4]
     lines = ["Peak usage hours (last 7 days):"]
     for hr, count in top_hours:
-        label = f"{hr:02d}:00–{hr+1:02d}:00"
+        label = f"{hr:02d}:00–{hr + 1:02d}:00"
         lines.append(f"  {label} → {count} device activations")
 
-    # Flag if peak overlaps expensive grid hours (6–10 PM in India)
     peak_hour = top_hours[0][0] if top_hours else -1
     if 18 <= peak_hour <= 22:
         lines.append("\n  ⚠ Peak overlaps high-tariff grid hours (6–10 PM). Consider shifting to morning.")
     return "\n".join(lines)
 
-
+@energy_tool
 def get_smart_schedule() -> str:
     """
     Suggest an optimized device schedule based on the user's usage history.
-    Identifies devices that run at expensive hours and recommends shift times.
     """
     user_id = current_user_id.get()
     since = datetime.utcnow() - timedelta(days=7)
     events = list(db["usage_history"].find({"user_id": user_id, "timestamp": {"$gte": since}}))
 
     if not events:
-        return "No usage history yet to generate a schedule. Use Agent mode to control devices first."
+        return "No usage history yet to generate a schedule. Seed usage data first."
 
-    # Group by device type and hour
     device_hours: dict[str, list[int]] = {}
     for e in events:
         if e["action"] == "ON":
@@ -257,10 +401,7 @@ def get_smart_schedule() -> str:
 
     return "Smart schedule suggestions based on your usage:\n" + "\n".join(suggestions)
 
-
-from services.rag_service import get_rag_response
-
-
+@rag_tool
 def get_energy_knowledge(query: str) -> str:
     """
     Search VoltStream knowledge base for energy saving guidance.
@@ -268,10 +409,7 @@ def get_energy_knowledge(query: str) -> str:
     Args:
         query: question to search in uploaded PDF knowledge base
     """
-
     result = get_rag_response(query)
-
     if isinstance(result, dict):
         return result.get("response", "No recommendations found.")
-
     return str(result)

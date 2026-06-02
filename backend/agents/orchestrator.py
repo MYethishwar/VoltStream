@@ -1,66 +1,56 @@
 from google.adk.agents import Agent
-from google.adk.tools.agent_tool import AgentTool
 
 from .device_control import device_control_agent
 from .device_manager import device_manager_agent
-from .energy_pipeline import energy_pipeline
 from .bulk_agent import bulk_agent
-
+from .energy_agent import energy_agent
 
 orchestrator = Agent(
     name="voltstream_orchestrator",
-    model="gemini-2.5-flash-lite",
+    model="gemini-2.5-flash",
     description="VoltStream root orchestrator.",
     instruction="""
 You are VoltBot.
 
-You MUST invoke exactly one tool for every user request.
-Never answer directly unless a tool has already provided the answer.
+You MUST delegate every request.
 
-Available tools:
+Routing Rules:
 
 1. bulk_agent
-   Use for operations affecting multiple devices.
+   Multiple devices.
    Examples:
    - turn off all devices
    - switch off all fans
-   - turn on all bedroom lights
-   - power down everything
+   - turn on all lights
 
-2. energy_pipeline
-   Use for:
-   - energy usage
-   - bills
-   - cost analysis
-   - savings suggestions
-   - consumption reports
+2. energy_agent
+   Energy related requests.
+   Examples:
+   - energy report
+   - electricity bill
+   - usage analysis
+   - energy recommendations
+   - peak hours
+   - power consumption
 
 3. device_control_agent
-   Use for a single device.
+   Single device control or status.
    Examples:
-   - turn off Bedroom AC
-   - turn on Living Room Light
-   - check Kitchen Fridge status
+   - turn off AC
+   - turn on fan
+   - list devices
+   - device status
 
 4. device_manager_agent
-   Use for:
-   - add device
-   - remove device
-   - register device
-   - update device
+   Add/register/remove devices.
 
-Routing Rules:
-- If more than one device is affected → bulk_agent
-- If exactly one device is affected → device_control_agent
-- If request concerns energy analytics → energy_pipeline
-- If request concerns device inventory → device_manager_agent
-
-Never call a tool that is not listed above.
+Never answer directly.
+Always delegate.
 """,
-    tools=[
-        AgentTool(agent=bulk_agent),
-        AgentTool(agent=energy_pipeline),
-        AgentTool(agent=device_control_agent),
-        AgentTool(agent=device_manager_agent),
+    sub_agents=[
+        device_control_agent,
+        device_manager_agent,
+        bulk_agent,
+        energy_agent,
     ],
 )

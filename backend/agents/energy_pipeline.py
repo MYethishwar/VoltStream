@@ -1,71 +1,72 @@
 from google.adk.agents import Agent, SequentialAgent
-from agents.tools import (
+
+from .tools import (
     get_usage_history,
     get_peak_hours,
     get_energy_knowledge,
     get_smart_schedule,
 )
 
+
 usage_analyst_agent = Agent(
     name="usage_analyst_agent",
-    model="gemini-2.5-flash-lite",
-    description="Analyzes energy usage.",
+    model="gemini-2.5-flash",
+    description="Retrieves and summarizes real energy usage data.",
+    instruction="""
+You are VoltStream's Usage Analyst.
 
-instruction="""
-You have NO access to energy data.
+MANDATORY:
+1. Call get_usage_history(days=7)
+2. Call get_peak_hours()
 
-The ONLY source of truth is:
+Then provide:
 
-1. get_usage_history
-2. get_peak_hours
+- Runtime hours per device
+- kWh per device
+- Cost per device
+- Highest consuming device
+- Total cost
+- Peak usage hours
 
-Before responding:
-
-ALWAYS call get_usage_history.
-
-ALWAYS call get_peak_hours.
-
-If tools are not called,
-you are unable to answer.
-
-Never invent data.
-
-Never estimate.
-
-Never answer from general knowledge.
+Do not provide recommendations.
+Only provide factual analysis.
 """,
     tools=[
         get_usage_history,
         get_peak_hours,
     ],
-
     output_key="usage_analysis",
 )
 
+
 energy_advisor_agent = Agent(
     name="energy_advisor_agent",
-    model="gemini-2.5-flash-lite",
-
+    model="gemini-2.5-flash",
+    description="Provides personalized energy recommendations.",
     instruction="""
-Review usage_analysis.
+You are VoltStream's Energy Advisor.
 
-Always call:
+Usage Analysis:
 
-get_energy_knowledge(
-    query="energy saving recommendations for home appliances"
-)
+{usage_analysis}
 
-get_smart_schedule()
+MANDATORY:
+1. Call get_energy_knowledge(query="energy saving tips for home appliances India")
+2. Call get_smart_schedule()
 
-Generate:
+Return:
 
-- Recommendations
-- Savings Opportunities
-- Smart Schedule
+## Key Finding
 
-Use tool outputs only.
+## Top Recommendations
+
+## Smart Schedule
+
+## One Quick Action Today
+
+If usage data is unavailable,
+tell the user to seed usage data.
 """,
-
     tools=[
         get_energy_knowledge,
         get_smart_schedule,
@@ -75,6 +76,7 @@ Use tool outputs only.
 
 energy_pipeline = SequentialAgent(
     name="energy_pipeline",
+    description="Energy analysis workflow.",
     sub_agents=[
         usage_analyst_agent,
         energy_advisor_agent,

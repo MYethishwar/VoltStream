@@ -33,16 +33,30 @@ def extract_user_id(authorization: str) -> str:
         raise HTTPException(status_code=401, detail="Invalid or missing token")
 
 
+def _extract_text(event) -> str:
+    """Safely extract text from any event content."""
+    try:
+        if event.content and event.content.parts:
+            for part in event.content.parts:
+                if hasattr(part, "text") and part.text and part.text.strip():
+                    return part.text.strip()
+    except Exception:
+        pass
+    return ""
+
+
 @router.post("/agent")
 async def agent_chat(request: AgentRequest, authorization: str = Header(...)):
     user_id = extract_user_id(authorization)
     session_id = f"session_{user_id}"
 
     existing = await session_service.get_session(
-        app_name="voltstream_agent", user_id=user_id, session_id=session_id)
+        app_name="voltstream_agent", user_id=user_id, session_id=session_id
+    )
     if not existing:
         await session_service.create_session(
-            app_name="voltstream_agent", user_id=user_id, session_id=session_id)
+            app_name="voltstream_agent", user_id=user_id, session_id=session_id
+        )
 
     token_ctx = current_user_id.set(user_id)
     response_text = ""
@@ -52,8 +66,11 @@ async def agent_chat(request: AgentRequest, authorization: str = Header(...)):
         async for event in runner.run_async(
             user_id=user_id,
             session_id=session_id,
-            new_message=types.Content(role="user", parts=[types.Part(text=request.message)]),
+            new_message=types.Content(
+                role="user", parts=[types.Part(text=request.message)]
+            ),
         ):
+            # Track tool calls and results for trace/debug
             if hasattr(event, "content") and event.content and event.content.parts:
                 for part in event.content.parts:
                     if hasattr(part, "function_call") and part.function_call:
@@ -68,31 +85,38 @@ async def agent_chat(request: AgentRequest, authorization: str = Header(...)):
                         agent_steps.append({
                             "step": "tool_result",
                             "tool": fr.name,
-                            "result": str(fr.response)[:300],  # truncate for log readability
+                            "result": str(fr.response)[:300],
                         })
 
-            # Capture agent handoffs for trace visibility
+            # Track agent handoffs
             if hasattr(event, "author") and event.author:
-                last_author = event.author
-                if agent_steps and agent_steps[-1].get("step") != "agent_handoff":
-                    agent_steps.append({"step": "agent_handoff", "agent": event.author})
+                if not agent_steps or agent_steps[-1].get("agent") != event.author:
+                    agent_steps.append({
+                        "step": "agent_handoff",
+                        "agent": event.author,
+                    })
 
-            if event.is_final_response():
-                if event.content and event.content.parts:
-                    response_text = event.content.parts[0].text
+            # ── Capture response text ──────────────────────────────────────
+            # Strategy: collect ALL text from ALL events, keep the last
+            # non-empty one. is_final_response() alone misses AgentTool
+            # sub-agent replies which come as regular events.
+            text = _extract_text(event)
+            if text:
+                response_text = text  # keep overwriting — last text wins
+
     finally:
         current_user_id.reset(token_ctx)
+
+    if not response_text:
+        response_text = "I processed your request but couldn't generate a text response. Please try again."
 
     return {"reply": response_text, "steps": agent_steps}
 
 
-# ── Seed endpoint: populate usage_history with demo data for testing ──────────
+# ── Seed endpoint ─────────────────────────────────────────────────────────────
 @router.post("/agent/seed-usage")
 async def seed_usage_history(authorization: str = Header(...)):
-    """
-    Populates usage_history with 7 days of realistic demo data.
-    Call once after login to enable energy analysis features.
-    """
+    """Populates usage_history with 7 days of realistic demo data."""
     from database.connection import db
     from datetime import datetime, timedelta
     import random
@@ -102,22 +126,32 @@ async def seed_usage_history(authorization: str = Header(...)):
 
     sample_devices_raw = list(db["devices"].find({"user_id": user_id}))
     if not sample_devices_raw:
-        raise HTTPException(status_code=400, detail="No devices found. Add devices first.")
+        raise HTTPException(
+            status_code=400, detail="No devices found. Add devices first."
+        )
 
     now = datetime.utcnow()
     inserted = 0
 
     for device in sample_devices_raw:
         dtype = device.get("type", "other")
-        # Simulate ON/OFF pairs over past 7 days
-        daily_hours = {"ac": 8, "fan": 12, "light": 6, "heater": 1, "fridge": 24, "tv": 4, "washer": 1}.get(dtype, 2)
+        daily_hours = {
+            "ac": 8, "fan": 12, "light": 6, "heater": 1,
+            "fridge": 24, "tv": 4, "washer": 1,
+        }.get(dtype, 2)
 
         for day_offset in range(7):
             base = now - timedelta(days=day_offset)
-            # Randomize slightly for realism
             on_hour = random.randint(7, 20)
-            on_time = base.replace(hour=on_hour, minute=random.randint(0, 59), second=0, microsecond=0)
-            off_time = on_time + timedelta(hours=daily_hours + random.uniform(-1, 1))
+            on_time = base.replace(
+                hour=on_hour,
+                minute=random.randint(0, 59),
+                second=0,
+                microsecond=0,
+            )
+            off_time = on_time + timedelta(
+                hours=daily_hours + random.uniform(-1, 1)
+            )
 
             db["usage_history"].insert_many([
                 {
@@ -125,7 +159,9 @@ async def seed_usage_history(authorization: str = Header(...)):
                     "device_id": str(device["_id"]),
                     "device_name": device["name"],
                     "device_type": dtype,
-                    "power_w": device.get("power_w", POWER_DEFAULTS.get(dtype, 100)),
+                    "power_w": device.get(
+                        "power_w", POWER_DEFAULTS.get(dtype, 100)
+                    ),
                     "action": "ON",
                     "timestamp": on_time,
                 },
@@ -134,11 +170,15 @@ async def seed_usage_history(authorization: str = Header(...)):
                     "device_id": str(device["_id"]),
                     "device_name": device["name"],
                     "device_type": dtype,
-                    "power_w": device.get("power_w", POWER_DEFAULTS.get(dtype, 100)),
+                    "power_w": device.get(
+                        "power_w", POWER_DEFAULTS.get(dtype, 100)
+                    ),
                     "action": "OFF",
                     "timestamp": off_time,
                 },
             ])
             inserted += 2
 
-    return {"message": f"Seeded {inserted} usage events for {len(sample_devices_raw)} devices over 7 days."}
+    return {
+        "message": f"Seeded {inserted} usage events for {len(sample_devices_raw)} devices over 7 days."
+    }

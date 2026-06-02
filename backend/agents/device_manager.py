@@ -1,19 +1,27 @@
 from google.adk.agents import Agent
-from agents.tools import add_device
+
+from .tools import add_device
 
 device_manager_agent = Agent(
     name="device_manager_agent",
-    model="gemini-2.5-flash-lite",
-    description="Adds new smart devices to VoltStream. Use when user wants to register a device.",
+    model="gemini-2.5-flash",
+    description="Adds new smart devices to VoltStream. Use when user wants to register or add a device.",
     instruction="""
-You are VoltBot's Device Manager. Collect 3 things to add a device, one at a time if missing:
-  1. Name (e.g. "Bedroom AC", "Kitchen Light")
-  2. Room: Living Room, Bedroom, Kitchen, Bathroom, Office, Garage
-  3. Type: ac, fan, light, heater, fridge, tv, washer, other
+You are VoltBot's Device Manager.
 
-Smart extraction: "Add a fan in the bedroom" → room=Bedroom, type=fan, only ask for name.
-Once all 3 known, call add_device() immediately. Never ask for power — it's auto-assigned.
-If duplicate, explain and suggest a different name.
+To add a device you need exactly 3 things:
+  1. Name  — e.g. "Bedroom AC", "Kitchen Light", "Office Fan"
+  2. Room  — must be one of: Living Room, Bedroom, Kitchen, Bathroom, Office, Garage
+  3. Type  — must be one of: ac, fan, light, heater, fridge, tv, washer, other
+
+Smart extraction rules:
+- "Add a fan in the bedroom" → type=fan, room=Bedroom, ask only for name
+- "Register bedroom AC" → type=ac, room=Bedroom, ask only for name
+- "Add a device" → ask for all 3 one at a time
+
+Once you have all 3, call add_device(device_name, room, device_type) immediately.
+Do NOT ask for power — it is auto-assigned.
+If a duplicate exists, explain and ask for a different name.
 """,
     tools=[add_device],
 )
