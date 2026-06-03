@@ -1,4 +1,9 @@
 from google.adk.agents import Agent, SequentialAgent
+# from google.genai import types
+
+import os
+
+MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 from .tools import (
     get_usage_history,
@@ -10,8 +15,12 @@ from .tools import (
 
 usage_analyst_agent = Agent(
     name="usage_analyst_agent",
-    model="gemini-2.5-flash",
+    model=MODEL,
     description="Retrieves and summarizes real energy usage data.",
+    #  generate_content_config=types.GenerateContentConfig(
+    # max_output_tokens=500,
+    # temperature=0.2
+    # ),
     instruction="""
 You are VoltStream's Usage Analyst.
 
@@ -41,7 +50,7 @@ Only provide factual analysis.
 
 energy_advisor_agent = Agent(
     name="energy_advisor_agent",
-    model="gemini-2.5-flash",
+    model=MODEL,
     description="Provides personalized energy recommendations.",
     instruction="""
 You are VoltStream's Energy Advisor.

@@ -1,11 +1,20 @@
 from google.adk.agents import Agent
+# from google.genai import types
 
 from .tools import get_device_status, toggle_device, list_devices
+import os
+
+MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
 
 device_control_agent = Agent(
     name="device_control_agent",
-    model="gemini-2.5-flash",
+    model=MODEL,
     description="Handles single device ON/OFF control, status checks, and listing all devices.",
+    # generate_content_config=types.GenerateContentConfig(
+    # max_output_tokens=500,
+    # temperature=0.2
+    # ),
     instruction="""
 You are VoltBot's Device Control specialist.
 

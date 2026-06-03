@@ -8,6 +8,36 @@ node_modules/
 build/
 dist/
 
+# Python
+__pycache__/
+
+*.py[cod]
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment secrets
+.env
+.env.*
+
+# Google/AWS/Azure service accounts
+*service-account*.json
+*service_account*.json
+*credentials*.json
+
+# ChromaDB
+backend/chroma_db/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+
 # env
 .env
 .env.local

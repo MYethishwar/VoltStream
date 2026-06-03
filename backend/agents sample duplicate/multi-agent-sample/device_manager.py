@@ -1,11 +1,20 @@
 from google.adk.agents import Agent
+# from google.genai import types
+
+import os
+
+MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 from .tools import add_device
 
 device_manager_agent = Agent(
     name="device_manager_agent",
-    model="gemini-2.5-flash",
+    model=MODEL,
     description="Adds new smart devices to VoltStream. Use when user wants to register or add a device.",
+    #  generate_content_config=types.GenerateContentConfig(
+    # max_output_tokens=1000,
+    # temperature=0.2
+    # ),
     instruction="""
 You are VoltBot's Device Manager.
 

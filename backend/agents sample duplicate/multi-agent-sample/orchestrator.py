@@ -1,14 +1,27 @@
 from google.adk.agents import Agent
+# from google.genai import types
+
+import os
+
+MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 from .device_control import device_control_agent
 from .device_manager import device_manager_agent
 from .bulk_agent import bulk_agent
 from .energy_agent import energy_agent
+import os
 
+print("VERTEX:", os.getenv("GOOGLE_GENAI_USE_VERTEXAI"))
+print("PROJECT:", os.getenv("GOOGLE_CLOUD_PROJECT"))
+print("CREDS:", os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 orchestrator = Agent(
     name="voltstream_orchestrator",
-    model="gemini-2.5-flash",
+    model=MODEL,
     description="VoltStream root orchestrator.",
+   #   generate_content_config=types.GenerateContentConfig(
+   #  max_output_tokens=0,
+   #  temperature=0.2
+   #  ),
     instruction="""
 You are VoltBot.
 

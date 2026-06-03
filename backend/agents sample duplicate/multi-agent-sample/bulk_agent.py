@@ -1,5 +1,9 @@
+# from google.genai import types
 from google.adk.agents import Agent
 from google.adk.tools import LongRunningFunctionTool
+import os
+
+MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 # Instead we can use LongRunningFunctionTool for the entire workflow.
 from .tools import (
     list_devices,
@@ -9,8 +13,14 @@ from .tools import (
 
 bulk_agent = Agent(
     name="bulk_agent",
-    model="gemini-2.5-flash",
+    model=MODEL,
     description="Handles bulk device operations affecting multiple devices at once.",
+    #  generate_content_config=types.GenerateContentConfig(
+    # max_output_tokens=500,
+    # temperature=0.2
+    # ),
+
+
     instruction="""
 You manage bulk device actions for multiple devices at once.
 
