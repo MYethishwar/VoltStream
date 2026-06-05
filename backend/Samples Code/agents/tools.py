@@ -68,3 +68,4 @@ def list_devices():
         names.append(device["name"])
 
     return f"Available devices are: {', '.join(names)}"
+

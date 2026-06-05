@@ -1,4 +1,8 @@
-from .orchestrator import orchestrator
+from agents.energy_pipeline import energy_pipeline
 
-root_agent = orchestrator
-__all__ = ["root_agent", "orchestrator"]
+root_agent = energy_pipeline
+
+
+# from agents.orchestrator import orchestrator
+
+# root_agent = orchestrator

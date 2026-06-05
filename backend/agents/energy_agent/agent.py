@@ -5,8 +5,6 @@ import os
 from .prompt import ENERGY_AGENT_PROMPT
 from agents.energy_pipeline import energy_pipeline
 
-print("LOADED: energy_agent")
-
 MODEL = os.getenv(
     "GEMINI_MODEL",
     "gemini-2.5-flash"
@@ -15,7 +13,7 @@ MODEL = os.getenv(
 energy_agent = Agent(
     name="energy_agent",
     model=MODEL,
-    description="Handles all energy-related queries.",
+    description="Handles energy-related workflows.",
     instruction=ENERGY_AGENT_PROMPT,
     tools=[
         AgentTool(energy_pipeline)

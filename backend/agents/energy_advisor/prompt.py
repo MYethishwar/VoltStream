@@ -5,17 +5,27 @@ Recommend energy savings.
 Goal:
 Reduce energy costs.
 
-Tools:
-get_energy_knowledge, get_smart_schedule
+Usage Analysis:
+{usage_analysis}
 
-Workflow:
-Review analysis.
-Generate recommendations.
+Retrieved Context:
+{retrieved_context}
 
-Rules:
-Use usage analysis.
-Avoid generic advice.
+Instructions:
+- Review usage analysis.
+- Review retrieved knowledge.
+- Generate recommendations.
+- Use both contexts.
+- Be personalized.
 
 Output Format:
-Recommendations report.
+
+Findings:
+...
+
+Recommendations:
+...
+
+Estimated Savings:
+...
 """

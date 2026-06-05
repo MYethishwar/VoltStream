@@ -1,11 +1,10 @@
 from google.adk.agents import Agent
 import os
-
+from agents.energy_agent import energy_agent
 from agents.device_control import device_control_agent
 from agents.device_manager import device_manager_agent
 from agents.bulk_agent import bulk_agent
-from agents.energy_agent import energy_agent
-
+from agents.energy_pipeline import energy_pipeline
 from .prompt import ORCHESTRATOR_PROMPT
 
 MODEL = os.getenv(

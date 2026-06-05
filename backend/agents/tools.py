@@ -6,7 +6,14 @@ from datetime import datetime, timedelta
 
 from functools import wraps
 
+from google import genai
+import os
 
+client = genai.Client(
+    vertexai=True,
+    project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+    location=os.getenv("GOOGLE_CLOUD_LOCATION")
+)
 
 def device_tool(func):
     @wraps(func)
@@ -413,3 +420,78 @@ def get_energy_knowledge(query: str) -> str:
     if isinstance(result, dict):
         return result.get("response", "No recommendations found.")
     return str(result)
+
+from services.rag_service import get_rag_response
+
+def rag_energy_search(query: str):
+    print("RAG RETRIEVAL EXECUTED")
+
+    result = get_rag_response(query)
+
+    response = result["response"]
+
+    primary_source = result.get("primary_source")
+
+    if primary_source:
+
+        source_text = (
+            f"{primary_source['pdf_name']} "
+            f"(Page {primary_source['page_num']})"
+        )
+
+    else:
+
+        source_text = "No source identified"
+
+    print("RAG TOOL:", query)
+    print("PRIMARY SOURCE:", source_text)
+
+    return f"""
+Retrieved Context:
+{response}
+
+Primary Source:
+{source_text}
+"""
+    
+def evaluate_rag_answer(
+    question: str,
+    context: str,
+    answer: str
+):
+    print("EVALUATION RUNNING")
+    print("QUESTION:", question)
+
+    prompt = f"""
+You are an expert RAG evaluator.
+
+Question:
+{question}
+
+Retrieved Context:
+{context}
+
+Answer:
+{answer}
+
+Evaluate:
+
+1. Faithfulness (1-10)
+2. Relevance (1-10)
+
+PASS if both >= 7
+
+Return:
+
+Faithfulness:
+Relevance:
+Result:
+Reason:
+"""
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
+    )
+
+    return response.text

@@ -1,5 +1,7 @@
 from services.pdf_service import extract_text_from_pdf
 from utils.chunking import chunk_text
+from collections import Counter
+
 
 from services.chroma_service import (
     store_chunks,
@@ -238,8 +240,37 @@ QUESTION:
             "relevance_score": 0.95
         })
 
+    pdf_counter = Counter()
+
+    for meta in metadatas:
+
+        pdf_name = meta.get("pdf_name")
+
+        if pdf_name:
+            pdf_counter[pdf_name] += 1
+
+        primary_source = None
+
+    if pdf_counter:
+
+        dominant_pdf = pdf_counter.most_common(1)[0][0]
+
+        for meta in metadatas:
+
+            if meta.get("pdf_name") == dominant_pdf:
+
+                primary_source = {
+                    "pdf_name": meta.get("pdf_name"),
+                    "page_num": meta.get("page_num"),
+                    "topic": meta.get("topic")
+                }
+
+                break
     return {
-        "response": response.text,
-        "sources": sources,
-        "has_knowledge_base_context": True
-    }
+            "response": response.text,
+            "primary_source": primary_source,
+            "sources": sources,
+            "has_knowledge_base_context": True
+        }
+        
+    
