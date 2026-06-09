@@ -8,6 +8,18 @@ node_modules/
 build/
 dist/
 
+
+# Python cache
+__pycache__/
+*.pyc
+
+# ChromaDB database
+backend/chroma_db/
+*.sqlite3
+
+# Agent session database
+backend/agents/.adk/session.db
+
 # Python
 __pycache__/
 
@@ -40,6 +52,7 @@ Thumbs.db
 
 # env
 .env
+,env-example
 .env.local
 .env.development.local
 .env.test.local
