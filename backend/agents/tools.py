@@ -114,7 +114,7 @@ def find_device(devices: list, device_name: str) -> dict | None:
 # ── Device control tools ───────────────────────────────────────────────────────
 @device_tool
 def get_device_status(device_name: str) -> str:
-    """Get the current ON/OFF status of a device by name."""
+    """Check if a device is ON or OFF. Use for status, state, running, active, enabled, powered queries."""
     user_id = current_user_id.get()
     devices = list(db["devices"].find({"user_id": user_id}))
     matched = find_device(devices, device_name)
@@ -122,10 +122,9 @@ def get_device_status(device_name: str) -> str:
         return f"No device matching '{device_name}'. Available: {', '.join(d['name'] for d in devices)}."
     return f"{matched['name']} ({matched['room']}) is {'ON' if matched['status'] else 'OFF'}."
 
-
 @device_tool
 def toggle_device(device_name: str, state: bool) -> str:
-    """Turn a device ON (state=True) or OFF (state=False). Use exact name from list_devices()."""
+    """Turn a device ON or OFF. Use for switch, enable, disable, power, activate, deactivate device requests."""
     user_id = current_user_id.get()
     devices = list(db["devices"].find({"user_id": user_id}))
     matched = find_device(devices, device_name)
@@ -138,10 +137,9 @@ def toggle_device(device_name: str, state: bool) -> str:
     _log_device_event(user_id, str(matched["_id"]), matched["name"], matched["type"], matched["power_w"], action)
     return f"{matched['name']} ({matched['room']}) turned {action}."
 
-
 @device_tool
 def list_devices() -> str:
-    """List all devices with exact names, types, rooms, and status."""
+    """List available devices. Use when device name is unknown or user asks show, display, available, registered devices."""
     user_id = current_user_id.get()
     devices = list(db["devices"].find({"user_id": user_id}))
     if not devices:
@@ -423,7 +421,13 @@ def get_energy_knowledge(query: str) -> str:
 
 from services.rag_service import get_rag_response
 
+
 def rag_energy_search(query: str):
+    """
+    Search energy PDFs and RAG knowledge base. Use for documentation,
+    energy facts, recommendations, troubleshooting, guides, policies,
+    uploaded documents, and domain-specific questions.
+    """
     print("RAG RETRIEVAL EXECUTED")
 
     result = get_rag_response(query)
@@ -453,6 +457,7 @@ Retrieved Context:
 Primary Source:
 {source_text}
 """
+
     
 def evaluate_rag_answer(
     question: str,
