@@ -46,7 +46,9 @@ def _extract_text(event) -> str:
 
 
 @router.post("/agent")
-async def agent_chat(request: AgentRequest, authorization: str = Header(...)):
+async def agent_chat(request: AgentRequest, authorization: str = Header(default=None)):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
     user_id = extract_user_id(authorization)
     session_id = f"session_{user_id}"
 
@@ -97,12 +99,22 @@ async def agent_chat(request: AgentRequest, authorization: str = Header(...)):
                     })
 
             # ── Capture response text ──────────────────────────────────────
-            # Strategy: collect ALL text from ALL events, keep the last
-            # non-empty one. is_final_response() alone misses AgentTool
-            # sub-agent replies which come as regular events.
             text = _extract_text(event)
             if text:
-                response_text = text  # keep overwriting — last text wins
+                author = getattr(event, "author", None)
+                # Priority 1: energy_advisor_agent is the answer we want
+                if author == "energy_advisor_agent":
+                    response_text = text
+                # Priority 2: device/bulk agents for non-energy queries
+                elif author in (
+                    "device_control_agent",
+                    "device_manager_agent",
+                    "bulk_agent",
+                ):
+                    response_text = text
+                # Priority 3: fallback — only set if nothing captured yet
+                elif not response_text:
+                    response_text = text
 
     finally:
         current_user_id.reset(token_ctx)

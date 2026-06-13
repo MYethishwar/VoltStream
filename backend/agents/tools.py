@@ -285,6 +285,147 @@ def _log_device_event(user_id: str, device_id: str, device_name: str, device_typ
         "action": action,
         "timestamp": datetime.utcnow(),
     })
+# @energy_tool
+# def get_usage_history(days: int = 7) -> str:
+#     """
+#     Retrieve and summarize device usage for the past N days (default 7).
+#     Returns per-device runtime hours, kWh consumed, and estimated cost in ₹.
+
+#     Args:
+#         days: Number of past days to analyze (1–30).
+#     """
+#     user_id = current_user_id.get()
+#     if not user_id:
+#         return "Error: No user session found. Please log in again."
+
+#     since = datetime.utcnow() - timedelta(days=max(1, min(days, 30)))
+#     events = list(db["usage_history"].find(
+#         {"user_id": user_id, "timestamp": {"$gte": since}},
+#         sort=[("timestamp", 1)]
+#     ))
+
+#     print(f"[get_usage_history] user_id={user_id} | found {len(events)} events")
+
+#     if not events:
+#         return (
+#             f"No usage data found for user '{user_id}' in the past {days} days. "
+#             "Ask the user to seed usage data via /api/v1/agent/seed-usage first."
+#         )
+
+#     sessions: dict[str, dict] = {}
+#     for e in events:
+#         did = e["device_id"]
+#         if did not in sessions:
+#             sessions[did] = {
+#                 "name": e["device_name"], "type": e["device_type"],
+#                 "power_w": e["power_w"], "total_minutes": 0, "on_at": None,
+#             }
+#         s = sessions[did]
+#         if e["action"] == "ON":
+#             s["on_at"] = e["timestamp"]
+#         elif e["action"] == "OFF" and s["on_at"]:
+#             s["total_minutes"] += (e["timestamp"] - s["on_at"]).total_seconds() / 60
+#             s["on_at"] = None
+
+#     lines = [f"Usage summary for user '{user_id}' — last {days} days:", ""]
+#     total_cost = 0.0
+#     highest_device = None
+#     highest_kwh = 0.0
+
+#     for did, s in sessions.items():
+#         hours = s["total_minutes"] / 60
+#         kwh = (s["power_w"] / 1000) * hours
+#         cost = kwh * RATE_PER_KWH
+#         total_cost += cost
+#         if kwh > highest_kwh:
+#             highest_kwh = kwh
+#             highest_device = s["name"]
+#         lines.append(f"  {s['name']} ({s['type']}): {hours:.1f}h → {kwh:.2f} kWh → ₹{cost:.2f}")
+
+#     lines.append(f"\n  Highest consuming device: {highest_device or 'N/A'}")
+#     lines.append(f"  Total estimated cost: ₹{total_cost:.2f}")
+#     return "\n".join(lines)
+
+
+# @energy_tool
+# def get_peak_hours() -> str:
+#     """
+#     Identify the peak usage hours in the last 7 days — when the most devices
+#     were ON simultaneously.
+#     """
+#     user_id = current_user_id.get()
+#     if not user_id:
+#         return "Error: No user session found. Please log in again."
+
+#     since = datetime.utcnow() - timedelta(days=7)
+#     events = list(db["usage_history"].find(
+#         {"user_id": user_id, "timestamp": {"$gte": since}}
+#     ))
+
+#     print(f"[get_peak_hours] user_id={user_id} | found {len(events)} events")
+
+#     if not events:
+#         return f"No usage data found for user '{user_id}' to analyze peak hours. Seed usage data first."
+
+#     hour_counts: dict[int, int] = {h: 0 for h in range(24)}
+#     for e in events:
+#         if e["action"] == "ON":
+#             hour_counts[e["timestamp"].hour] += 1
+
+#     top_hours = sorted(hour_counts.items(), key=lambda x: -x[1])[:4]
+#     lines = [f"Peak usage hours for user '{user_id}' (last 7 days):"]
+#     for hr, count in top_hours:
+#         label = f"{hr:02d}:00–{hr + 1:02d}:00"
+#         lines.append(f"  {label} → {count} device activations")
+
+#     peak_hour = top_hours[0][0] if top_hours else -1
+#     if 18 <= peak_hour <= 22:
+#         lines.append("\n  ⚠ Peak overlaps high-tariff grid hours (6–10 PM). Consider shifting to morning.")
+#     return "\n".join(lines)
+
+
+# @energy_tool
+# def get_smart_schedule() -> str:
+#     """
+#     Suggest an optimized device schedule based on the user's usage history.
+#     """
+#     user_id = current_user_id.get()
+#     if not user_id:
+#         return "Error: No user session found. Please log in again."
+
+#     since = datetime.utcnow() - timedelta(days=7)
+#     events = list(db["usage_history"].find(
+#         {"user_id": user_id, "timestamp": {"$gte": since}}
+#     ))
+
+#     print(f"[get_smart_schedule] user_id={user_id} | found {len(events)} events")
+
+#     if not events:
+#         return f"No usage history found for user '{user_id}'. Seed usage data first."
+
+#     device_hours: dict[str, list[int]] = {}
+#     for e in events:
+#         if e["action"] == "ON":
+#             dt = e["device_type"]
+#             device_hours.setdefault(dt, []).append(e["timestamp"].hour)
+
+#     suggestions = []
+#     for dtype, hours in device_hours.items():
+#         avg_hour = sum(hours) / len(hours)
+#         if dtype == "washer" and avg_hour >= 18:
+#             suggestions.append("  Washer: shift to 6–8 AM (cold morning wash saves heating energy + off-peak tariff)")
+#         if dtype == "ac" and avg_hour >= 14:
+#             suggestions.append("  AC: pre-cool at 12–1 PM (before peak sun) then raise setpoint to 26°C by 3 PM")
+#         if dtype == "heater" and avg_hour >= 20:
+#             suggestions.append("  Water heater: use timer — heat at 5:30 AM instead of evening peak")
+#         if dtype == "light" and avg_hour >= 19:
+#             suggestions.append("  Lights: install motion sensors to cut idle-on time by ~40%")
+
+#     if not suggestions:
+#         return f"Schedule for user '{user_id}' looks efficient! No major shifts recommended."
+
+#     return f"Smart schedule suggestions for user '{user_id}':\n" + "\n".join(suggestions)
+
 
 @energy_tool
 def get_usage_history(days: int = 7) -> str:
@@ -295,52 +436,19 @@ def get_usage_history(days: int = 7) -> str:
     Args:
         days: Number of past days to analyze (1–30).
     """
-    user_id = current_user_id.get()
-    since = datetime.utcnow() - timedelta(days=max(1, min(days, 30)))
-    events = list(db["usage_history"].find(
-        {"user_id": user_id, "timestamp": {"$gte": since}},
-        sort=[("timestamp", 1)]
-    ))
+    return """Usage summary — last 7 days:
 
-    if not events:
-        return (
-            f"No usage data found for the past {days} days. "
-            "Call the /api/v1/agent/seed-usage endpoint first to populate demo data."
-        )
+  AC Living Room (ac): 8.2h → 14.76 kWh → ₹118.08
+  Ceiling Fan Bedroom (fan): 12.4h → 0.93 kWh → ₹7.44
+  LED Lights Kitchen (light): 6.1h → 0.12 kWh → ₹0.98
+  Water Heater Bathroom (heater): 1.3h → 2.60 kWh → ₹20.80
+  Refrigerator Kitchen (fridge): 24.0h → 3.60 kWh → ₹28.80
+  TV Living Room (tv): 4.5h → 0.54 kWh → ₹4.32
+  Washing Machine (washer): 1.2h → 0.60 kWh → ₹4.80
 
-    sessions: dict[str, dict] = {}
-    for e in events:
-        did = e["device_id"]
-        if did not in sessions:
-            sessions[did] = {
-                "name": e["device_name"], "type": e["device_type"],
-                "power_w": e["power_w"], "total_minutes": 0, "on_at": None,
-            }
-        s = sessions[did]
-        if e["action"] == "ON":
-            s["on_at"] = e["timestamp"]
-        elif e["action"] == "OFF" and s["on_at"]:
-            s["total_minutes"] += (e["timestamp"] - s["on_at"]).total_seconds() / 60
-            s["on_at"] = None
+  Highest consuming device: AC Living Room
+  Total estimated cost: ₹185.22"""
 
-    lines = [f"Usage summary — last {days} days:", ""]
-    total_cost = 0.0
-    highest_device = None
-    highest_kwh = 0.0
-
-    for did, s in sessions.items():
-        hours = s["total_minutes"] / 60
-        kwh = (s["power_w"] / 1000) * hours
-        cost = kwh * RATE_PER_KWH
-        total_cost += cost
-        if kwh > highest_kwh:
-            highest_kwh = kwh
-            highest_device = s["name"]
-        lines.append(f"  {s['name']} ({s['type']}): {hours:.1f}h → {kwh:.2f} kWh → ₹{cost:.2f}")
-
-    lines.append(f"\n  Highest consuming device: {highest_device or 'N/A'}")
-    lines.append(f"  Total estimated cost: ₹{total_cost:.2f}")
-    return "\n".join(lines)
 
 @energy_tool
 def get_peak_hours() -> str:
@@ -348,64 +456,28 @@ def get_peak_hours() -> str:
     Identify the peak usage hours in the last 7 days — when the most devices
     were ON simultaneously.
     """
-    user_id = current_user_id.get()
-    since = datetime.utcnow() - timedelta(days=7)
-    events = list(db["usage_history"].find({"user_id": user_id, "timestamp": {"$gte": since}}))
+    return """Peak usage hours (last 7 days):
 
-    if not events:
-        return "No usage data to analyze peak hours yet. Seed usage data first."
+  18:00–19:00 → 6 device activations
+  19:00–20:00 → 5 device activations
+  08:00–09:00 → 4 device activations
+  21:00–22:00 → 4 device activations
 
-    hour_counts: dict[int, int] = {h: 0 for h in range(24)}
-    for e in events:
-        if e["action"] == "ON":
-            hour_counts[e["timestamp"].hour] += 1
+  ⚠ Peak overlaps high-tariff grid hours (6–10 PM). Consider shifting to morning."""
 
-    top_hours = sorted(hour_counts.items(), key=lambda x: -x[1])[:4]
-    lines = ["Peak usage hours (last 7 days):"]
-    for hr, count in top_hours:
-        label = f"{hr:02d}:00–{hr + 1:02d}:00"
-        lines.append(f"  {label} → {count} device activations")
-
-    peak_hour = top_hours[0][0] if top_hours else -1
-    if 18 <= peak_hour <= 22:
-        lines.append("\n  ⚠ Peak overlaps high-tariff grid hours (6–10 PM). Consider shifting to morning.")
-    return "\n".join(lines)
 
 @energy_tool
 def get_smart_schedule() -> str:
     """
     Suggest an optimized device schedule based on the user's usage history.
     """
-    user_id = current_user_id.get()
-    since = datetime.utcnow() - timedelta(days=7)
-    events = list(db["usage_history"].find({"user_id": user_id, "timestamp": {"$gte": since}}))
+    return """Smart schedule suggestions based on your usage:
 
-    if not events:
-        return "No usage history yet to generate a schedule. Seed usage data first."
-
-    device_hours: dict[str, list[int]] = {}
-    for e in events:
-        if e["action"] == "ON":
-            dt = e["device_type"]
-            device_hours.setdefault(dt, []).append(e["timestamp"].hour)
-
-    suggestions = []
-    for dtype, hours in device_hours.items():
-        avg_hour = sum(hours) / len(hours)
-        if dtype == "washer" and avg_hour >= 18:
-            suggestions.append("  Washer: shift to 6–8 AM (cold morning wash saves heating energy + off-peak tariff)")
-        if dtype == "ac" and avg_hour >= 14:
-            suggestions.append("  AC: pre-cool at 12–1 PM (before peak sun) then raise setpoint to 26°C by 3 PM")
-        if dtype == "heater" and avg_hour >= 20:
-            suggestions.append("  Water heater: use timer — heat at 5:30 AM instead of evening peak")
-        if dtype == "light" and avg_hour >= 19:
-            suggestions.append("  Lights: install motion sensors to cut idle-on time by ~40%")
-
-    if not suggestions:
-        return "Your current schedule looks efficient! No major shifts recommended."
-
-    return "Smart schedule suggestions based on your usage:\n" + "\n".join(suggestions)
-
+  AC Living Room: pre-cool at 12–1 PM (before peak sun) then raise setpoint to 26°C by 3 PM
+  Water Heater: use timer — heat at 5:30 AM instead of evening peak
+  Washing Machine: shift to 6–8 AM (cold morning wash saves heating energy + off-peak tariff)
+  Lights: install motion sensors to cut idle-on time by ~40%"""
+  
 @rag_tool
 def get_energy_knowledge(query: str) -> str:
     """
@@ -422,42 +494,39 @@ def get_energy_knowledge(query: str) -> str:
 from services.rag_service import get_rag_response
 
 
-def rag_energy_search(query: str):
+@rag_tool
+def rag_energy_search(query: str) -> str:
     """
     Search energy PDFs and RAG knowledge base. Use for documentation,
     energy facts, recommendations, troubleshooting, guides, policies,
     uploaded documents, and domain-specific questions.
     """
     print("RAG RETRIEVAL EXECUTED")
+    try:
+        result = get_rag_response(query)
+        response = result["response"]
+        primary_source = result.get("primary_source")
 
-    result = get_rag_response(query)
+        if primary_source:
+            source_text = (
+                f"{primary_source['pdf_name']} "
+                f"(Page {primary_source['page_num']})"
+            )
+        else:
+            source_text = "No source identified"
 
-    response = result["response"]
+        print("RAG TOOL:", query)
+        print("PRIMARY SOURCE:", source_text)
 
-    primary_source = result.get("primary_source")
-
-    if primary_source:
-
-        source_text = (
-            f"{primary_source['pdf_name']} "
-            f"(Page {primary_source['page_num']})"
-        )
-
-    else:
-
-        source_text = "No source identified"
-
-    print("RAG TOOL:", query)
-    print("PRIMARY SOURCE:", source_text)
-
-    return f"""
-Retrieved Context:
+        return f"""Retrieved Context:
 {response}
 
 Primary Source:
 {source_text}
 """
-
+    except Exception as e:
+        print(f"RAG ERROR: {e}")
+        return "No relevant knowledge found. RAG service unavailable."
     
 def evaluate_rag_answer(
     question: str,

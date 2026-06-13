@@ -14,22 +14,13 @@ MODEL = os.getenv(
 
 print("LOADED: energy_advisor_agent")
 
+# energy_advisor/agent.py
+
 energy_advisor_agent = Agent(
     name="energy_advisor_agent",
     model=MODEL,
     description="Provides grounded energy recommendations.",
-    instruction=f"""
-{ENERGY_ADVISOR_PROMPT}
-
-Usage Analysis:
-{{usage_analysis}}
-
-Retrieved Context:
-{{retrieved_context}}
-""",
-    tools=[
-        get_smart_schedule
-    ],
+    instruction=ENERGY_ADVISOR_PROMPT,  # ← drop the f-string wrapper entirely
+    tools=[get_smart_schedule],
     output_key="final_answer"
-
 )

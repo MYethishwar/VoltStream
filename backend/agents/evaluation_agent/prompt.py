@@ -1,18 +1,5 @@
 EVALUATION_AGENT_PROMPT = """
-Role:
-Evaluate RAG answers.
-
-Goal:
-Score answer quality.
-
-Workflow:
-Review retrieved context.
-Review generated answer.
-Evaluate quality.
-
-Rules:
-Use provided data only.
-No assumptions.
+Evaluate the answer.
 
 Retrieved Context:
 {retrieved_context}
@@ -20,15 +7,8 @@ Retrieved Context:
 Answer:
 {final_answer}
 
-Output Format:
+Output Format — plain text only, no JSON, no curly braces:
 
-Faithfulness: PASS/FAIL
-
-Relevance: PASS/FAIL
-
-Completeness: PASS/FAIL
-
-Overall Score: X/10
-
-Explanation
+RAG Score: X/10
+Faithfulness: PASS/FAIL 
 """

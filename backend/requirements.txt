@@ -1,8 +1,66 @@
-fastapi
-uvicorn
-pydantic
-python-dotenv
-chromadb>=0.4.0
-PyPDF2>=4.0.0
-google-generativeai>=0.3.0
-python-multipart
+# ============================================================================
+# VoltStream RAG-Enabled Energy Management Platform
+# Production Dependencies - Week 6
+# ============================================================================
+
+# ─────────────────────── Web Framework ────────────────────────────────
+fastapi==0.104.1              # Modern async web framework
+uvicorn[standard]==0.24.0     # ASGI server with uvloop optimization
+pydantic==2.5.0               # Data validation using Python type hints
+pydantic-settings==2.1.0      # Settings management with environment variables
+python-multipart==0.0.6       # Multipart form data parsing
+
+# ─────────────────────── Google Cloud & AI ──────────────────────────────
+google-generativeai>=0.3.0    # Google Gemini LLM API
+google-cloud-aiplatform>=1.39.0  # Google Cloud Vertex AI (ADK, embeddings)
+google-adk-agents>=0.2.0      # Google AI Development Kit for agents
+google-auth>=2.26.0           # Google Cloud authentication
+google-auth-httplib2>=0.2.0   # HTTP transport for Google Auth
+google-auth-oauthlib>=1.2.0   # OAuth2 support for Google
+google-cloud-logging>=3.8.0   # Cloud Logging integration
+
+# ─────────────────────── Vector Database & Embeddings ──────────────────
+chromadb>=0.4.0               # Vector database for RAG storage
+sentence-transformers>=2.2.2  # Semantic embedding generation (all-MiniLM-L6-v2)
+numpy>=1.24.0                 # Numerical computing for embeddings
+
+# ─────────────────────── PDF Processing ──────────────────────────────────
+PyPDF2>=4.0.0                 # PDF extraction and parsing
+pypdf>=3.17.0                 # Alternative PDF library
+pdfplumber>=0.10.0            # Enhanced PDF text extraction
+python-pdf==1.0.1             # Additional PDF utilities
+
+# ─────────────────────── Database ──────────────────────────────────────────
+pymongo>=4.6.0                # MongoDB driver
+motor>=3.3.2                  # Async MongoDB driver for FastAPI
+
+# ─────────────────────── Environment & Configuration ──────────────────
+python-dotenv>=1.0.0          # Environment variable management
+python-json-logger>=2.0.7     # Structured JSON logging
+
+# ─────────────────────── Utilities & Helpers ──────────────────────────
+requests>=2.31.0              # HTTP client library
+aiofiles>=23.2.1              # Async file I/O
+python-dateutil>=2.8.2        # Date/time utilities
+pytz>=2023.3.post1            # Timezone support
+
+# ─────────────────────── Monitoring & Logging ────────────────────────
+opentelemetry-api>=1.20.0     # OpenTelemetry tracing API
+opentelemetry-sdk>=1.20.0     # OpenTelemetry SDK
+opentelemetry-exporter-gcp-trace>=1.4.1  # GCP trace exporter
+opentelemetry-instrumentation-fastapi>=0.41b0  # FastAPI instrumentation
+
+# ─────────────────────── Caching (Optional but Recommended) ──────────────
+redis>=5.0.0                  # Redis client for caching
+aioredis>=2.0.1               # Async Redis support
+
+# ─────────────────────── Rate Limiting (Optional) ─────────────────────
+slowapi>=0.1.9                # Rate limiting for FastAPI
+
+# ─────────────────────── Development Dependencies (install with: pip install -r requirements-dev.txt) ──────
+# pytest==7.4.3
+# pytest-asyncio==0.21.1
+# black==23.12.0
+# flake8==6.1.0
+# mypy==1.7.1
+# isort==5.13.2

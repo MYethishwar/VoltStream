@@ -8,7 +8,6 @@ from agents.evaluation_agent import evaluation_agent
 
 print("LOADED: energy_pipeline")
 
-
 energy_parallel = ParallelAgent(
     name="energy_parallel",
     sub_agents=[
@@ -16,7 +15,6 @@ energy_parallel = ParallelAgent(
         knowledge_retriever_agent,
     ]
 )
-
 
 energy_pipeline = SequentialAgent(
     name="energy_pipeline",
