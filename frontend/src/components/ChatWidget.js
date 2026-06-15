@@ -155,7 +155,8 @@ export default function ChatWidget() {
           : {}),
       };
 
-      const res = await fetch(`http://localhost:8000${cfg.endpoint}`, {
+      const res = await fetch(`${process.env.REACT_APP_AI_URL || "http://localhost:8000"}${cfg.endpoint}`, {
+
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify({ message: userMessage }),
