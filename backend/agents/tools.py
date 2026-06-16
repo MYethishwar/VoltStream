@@ -520,9 +520,6 @@ def rag_energy_search(query: str) -> str:
 
         return f"""Retrieved Context:
 {response}
-
-Primary Source:
-{source_text}
 """
     except Exception as e:
         print(f"RAG ERROR: {e}")

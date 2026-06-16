@@ -1,0 +1,61 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Secrets — never copy into image
+.env
+.env.*
+*.pem
+*.key
+service-account*.json
+credentials*.json
+
+# Python caches
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv
+venv
+env
+venv311
+
+# Local data directories
+chroma_db/
+uploads/
+sessions/
+*.log
+
+# Test and tooling
+.pytest_cache
+.mypy_cache
+.ruff_cache
+htmlcov/
+.coverage
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+deploy.sh
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs
+README.md
+docs/
+.github/
+
+# Sample/duplicate folders
+agents sample duplicate/
+Samples Code/

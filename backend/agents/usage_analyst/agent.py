@@ -2,13 +2,11 @@ from google.adk.agents import Agent
 from google.genai import types
 
 from .prompt import USAGE_ANALYST_PROMPT
-
 from agents.tools import (
     get_usage_history,
     get_peak_hours,
+    get_smart_schedule,
 )
-
-print("LOADED: usage_analyst_agent")
 
 usage_analyst_agent = Agent(
     name="usage_analyst_agent",
@@ -22,6 +20,7 @@ usage_analyst_agent = Agent(
     tools=[
         get_usage_history,
         get_peak_hours,
+        get_smart_schedule,
     ],
     output_key="usage_analysis",
 )

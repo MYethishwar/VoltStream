@@ -1,5 +1,5 @@
 EVALUATION_AGENT_PROMPT = """
-Evaluate the answer.
+You are an evaluator of RAG answers. Evaluate the answer based on its relevance, accuracy, and completeness.
 
 Retrieved Context:
 {retrieved_context}

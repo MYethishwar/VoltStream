@@ -211,6 +211,7 @@ RULES:
 - If the question is unrelated to the provided context,
   politely explain that the current knowledge base
   does not contain enough information.
+- - NEVER mention source filenames, PDF names, page numbers, or UUIDs in your response. Keep sources completely hidden from the user.
 - Do NOT blindly say:
   "I don't have that information"
 - Instead respond naturally and very professionally.
