@@ -1,99 +1,74 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# ── Node / Frontend ───────────────────────────────────────────────────────────
 node_modules/
 **/node_modules/
-
-# production
+/.pnp
+.pnp.js
+/coverage
 build/
 dist/
+/build
+package-lock.json
 
-
-# Python cache
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
-*.pyc
-
-# ChromaDB database
-backend/chroma_db/
-*.sqlite3
-
-# Agent session database
-backend/agents/.adk/session.db
-
-# Python
-__pycache__/
-
 *.py[cod]
+*.pyo
 
-# Virtual environments
+# ── Virtual Environments ──────────────────────────────────────────────────────
 venv/
+venv311/
 .venv/
 env/
 
-# Environment secrets
+# ── Environment & Secrets ─────────────────────────────────────────────────────
 .env
 .env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+,env-example
 
-# Google/AWS/Azure service accounts
+# GCP / AWS / Azure credentials
+backend/env-vars.yaml
 *service-account*.json
 *service_account*.json
 *credentials*.json
 
-# ChromaDB
+# ── Databases ─────────────────────────────────────────────────────────────────
 backend/chroma_db/
+*.sqlite3
+backend/agents/.adk/session.db
 
-# Logs
-*.log
+# ── Uploaded / Generated Files ────────────────────────────────────────────────
+backend/uploaded_pdfs/
+backend/agents/evaluation_report_*.csv
+backend/agents/evaluation_report_*.json
+backend/agents/voltstream_eval_*.pdf
 
-# OS files
-.DS_Store
-Thumbs.db
+# ── Firebase ──────────────────────────────────────────────────────────────────
+frontend/.firebase/
+frontend/.agents/
+frontend/skills-lock.json
+frontend/firebase.json
+frontend/.firebaserc
 
-
-# env
-.env
-,env-example
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# logs
+# ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# IDE
+# ── IDE ───────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 
-# MS Word temp files
-~$*.docx
-*.tmp
-
-# misc
+# ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
 .cache/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# production
-/build
-
-# misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.tmp
+~$*.docx
+ss
