@@ -1,3 +1,5 @@
+from sympy import python
+
 from services.pdf_service import extract_text_from_pdf
 from utils.chunking import chunk_text
 from collections import Counter
@@ -7,11 +9,6 @@ from services.chroma_service import (
     store_chunks,
     search_chunks
 )
-# from services.chroma_service import (
-#     store_temp_chunks,
-#     search_temp_chunks,
-#     clear_temp_collection
-# )
 
 from google import genai
 
@@ -25,120 +22,7 @@ client = genai.Client(
     project=os.getenv("GOOGLE_CLOUD_PROJECT"),
     location=os.getenv("GOOGLE_CLOUD_LOCATION")
 )
-# def process_temp_pdf(pdf_path, pdf_name):
 
-#     clear_temp_collection()
-
-#     extracted = extract_text_from_pdf(pdf_path)
-
-#     text = extracted["text"]
-
-#     chunks = chunk_text(text)
-
-#     metadata_list = []
-
-#     for idx, chunk in enumerate(chunks):
-
-#         metadata_list.append({
-#             "pdf_name": pdf_name,
-#             "chunk_id": idx,
-#             "page_num": idx + 1
-#         })
-
-#     store_temp_chunks(chunks, metadata_list)
-
-#     return {
-#         "success": True,
-#         "message": "Temporary PDF loaded successfully",
-#         "chunks_created": len(chunks)
-# }
-    
-    
-    
-# def get_temp_rag_response(user_question):
-
-#     results = search_temp_chunks(user_question)
-
-#     documents = results["documents"][0]
-
-#     if not documents:
-
-#         return {
-#             "response":
-#                 "I could not find relevant information in the uploaded document."
-#         }
-
-#     context = "\n\n".join(documents)
-
-#     prompt = f"""
-# You are VoltBot AI.
-
-# Answer naturally and conversationally.
-
-# Use ONLY the provided PDF context.
-
-# If information is unavailable,
-# politely explain limitations.
-
-# CONTEXT:
-# {context}
-
-# QUESTION:
-# {user_question}
-# """
-
-#     response = client.models.generate_content(
-#         model="gemini-2.5-flash",
-#         contents=prompt
-#     )
-
-#     return {
-#         "response": response.text
-# }
-    
-    
-    
-# # def get_temp_rag_response(user_question):
-
-#     results = search_temp_chunks(user_question)
-
-#     documents = results["documents"][0]
-
-#     if not documents:
-
-#         return {
-#             "response":
-#                 "I could not find relevant information in the uploaded document."
-#         }
-
-#     context = "\n\n".join(documents)
-
-#     prompt = f"""
-# You are VoltBot AI.
-
-# Answer naturally and conversationally.
-
-# Use ONLY the provided PDF context.
-
-# If information is unavailable,
-# politely explain limitations.
-
-# CONTEXT:
-# {context}
-
-# QUESTION:
-# {user_question}
-# """
-
-#     response = client.models.generate_content(
-#         model="gemini-2.5-flash",
-#         contents=prompt
-#     )
-
-#     return {
-#         "response": response.text
-#     }
-    
 
 def process_pdf(pdf_path, pdf_name, topic="general"):
     """
@@ -196,34 +80,29 @@ def get_rag_response(user_question):
     context = "\n\n".join(documents)
 
     prompt = f"""
-You are VoltBot, an intelligent AI assistant for VoltStream.
+    You are VoltBot, the AI assistant for VoltStream.
 
-Your job is to:
-- answer naturally and conversationally
-- use the provided context whenever relevant
-- help users professionally
-- behave like a smart assistant, not a search engine
+    Guidelines:
+    - Be professional, natural, and conversational.
+    - On the first message, introduce yourself and explain your purpose in the RAG environment.
+    - Use the provided context whenever relevant.
+    - If the answer is in the context, answer confidently.
+    - If only partial information exists, answer with the available details.
+    - If the question is outside the knowledge base, politely explain that the available information is insufficient.
+    - Never mention sources, filenames, PDFs, pages, IDs, or internal references.
+    - Do not use generic replies like "I don't have that information."
+    - For numerical or lengthy topics, provide a brief summary/conclusion first.
+    - Keep responses concise: usually 10–25 words, up to 40 when necessary.
+    - If the user asks general knowledge questions unrelated to the knowledge base, suggest switching to Normal Mode for broader answers. Only do this when appropriate.
 
-RULES:
-- initial chat message should be professional first reponse the default one suggests you are in a rag based  environment and tell the purpose.
-- If the answer exists in context, answer confidently.
-- If partial information exists, answer with available information.
-- If the question is unrelated to the provided context,
-  politely explain that the current knowledge base
-  does not contain enough information.
-- - NEVER mention source filenames, PDF names, page numbers, or UUIDs in your response. Keep sources completely hidden from the user.
-- Do NOT blindly say:
-  "I don't have that information"
-- Instead respond naturally and very professionally.
-- Mostly summarize the reponse if it i related to numericals. or jsur breifly conclude in a single line, if user need any further explination.
-- if user asks general knowledge questions, suggest him yo switch the above button to enable a normal conversational mode without RAG, so that you can answer general knowledge questions more freely without being restricted to the context of the knowledge base. but do not suggest this every time, only when you feel that user is asking general knowledge questions or questions that are unlikely to be answered well with the current knowledge base, then suggest them in a friendly way to switch to normal mode for better answers on such topics.
-Golden rule: repond with the best possible answer and in small sentenses... mostly donot exeed 10 - 25 words in a single reponse, if needed by chance you can  extend it to maximum 40 words.   
-CONTEXT:
-{context}
+    CONTEXT:
+    {context}
 
-QUESTION:
-{user_question}
-"""
+    QUESTION:
+    {user_question}
+    """
+
+
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=prompt
@@ -273,5 +152,3 @@ QUESTION:
             "sources": sources,
             "has_knowledge_base_context": True
         }
-        
-    

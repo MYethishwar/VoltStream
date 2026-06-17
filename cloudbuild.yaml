@@ -1,0 +1,79 @@
+# ============================================================================
+# GCP Cloud Build Configuration for VoltStream
+# Builds and deploys the application to Cloud Run
+# ============================================================================
+
+steps:
+  # Step 1: Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/voltstream-api:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/voltstream-api:latest'
+      - '-f'
+      - 'backend/Dockerfile'
+      - 'backend/'
+    waitFor: ['-']
+
+  # Step 2: Push image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/voltstream-api:$COMMIT_SHA'
+    waitFor: ['build-image']
+
+  # Step 3: Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'deploy-cloud-run'
+    args:
+      - 'run'
+      - '--filename=.'
+      - '--image=gcr.io/$PROJECT_ID/voltstream-api:$COMMIT_SHA'
+      - '--location=us-central1'
+      - '--filename=deployment'
+    waitFor: ['push-image']
+
+# ============================================================================
+# ALTERNATIVE: Direct Cloud Run Deploy with gcloud
+# ============================================================================
+# You can also deploy directly using the gcloud command:
+# 
+# gcloud run deploy voltstream-api \
+#   --image gcr.io/voltstream-yethishwar/voltstream-api:latest \
+#   --region us-central1 \
+#   --allow-unauthenticated \
+#   --set-env-vars GOOGLE_CLOUD_PROJECT=voltstream-yethishwar,\
+#     GOOGLE_CLOUD_LOCATION=us-east5,\
+#     ENVIRONMENT=production \
+#   --set-secrets MONGO_URI=mongo-uri:latest,\
+#     JWT_SECRET=jwt-secret:latest
+
+# ============================================================================
+# Images to push to registry
+# ============================================================================
+images:
+  - 'gcr.io/$PROJECT_ID/voltstream-api:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/voltstream-api:latest'
+
+# ============================================================================
+# Build configuration
+# ============================================================================
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+# ============================================================================
+# Timeout (30 minutes)
+# ============================================================================
+timeout: '1800s'
+
+# ============================================================================
+# Substitution variables (if needed)
+# ============================================================================
+substitutions:
+  _REGION: 'us-central1'
+  _SERVICE_NAME: 'voltstream-api'

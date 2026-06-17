@@ -1,0 +1,64 @@
+# ============================================================================
+# .dockerignore — VoltStream
+# Prevents secrets, caches, and dev artefacts from entering the image
+# ============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Secrets — NEVER copy these into the image
+.env
+.env.*
+*.pem
+*.key
+service-account*.json
+credentials*.json
+
+# Python caches
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv
+venv
+env
+ENV
+
+# Local data directories (ephemeral — rebuilt at runtime in /tmp)
+chroma_db/
+uploads/
+sessions/
+*.log
+
+# Test and tooling artefacts
+.pytest_cache
+.mypy_cache
+.ruff_cache
+htmlcov/
+.coverage
+coverage.xml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker itself
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs and CI (not needed in runtime image)
+README.md
+docs/
+.github/

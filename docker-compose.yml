@@ -1,0 +1,200 @@
+version: '3.9'
+
+services:
+  # ╔════════════════════════════════════════════════════════════════════════╗
+  # ║                      VoltStream FastAPI Application                    ║
+  # ╚════════════════════════════════════════════════════════════════════════╝
+  voltstream-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voltstream-api
+    ports:
+      - "8080:8080"
+    environment:
+      # Google Cloud Configuration
+      GOOGLE_CLOUD_PROJECT: voltstream-yethishwar
+      GOOGLE_CLOUD_LOCATION: us-east5
+      GOOGLE_APPLICATION_CREDENTIALS: /app/service-account.json
+      GOOGLE_GENAI_USE_VERTEXAI: "true"
+      
+      # Database Configuration
+      MONGO_URI: mongodb://mongo:27017
+      
+      # Redis Configuration (for caching)
+      REDIS_URL: redis://redis:6379
+      
+      # ChromaDB Configuration
+      CHROMA_DB_PATH: /data/chroma_db
+      
+      # API Configuration
+      PORT: 8080
+      LOG_LEVEL: info
+      WORKERS: 4
+      
+      # CORS Configuration (update for production)
+      ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:8000"
+      
+    volumes:
+      # Application code
+      - ./:/app
+      
+      # Google Cloud Service Account (mount as read-only)
+      - ./service-account.json:/app/service-account.json:ro
+      
+      # Persistent data volumes
+      - voltstream-chroma-db:/data/chroma_db
+      - voltstream-uploads:/app/uploaded_pdfs
+      - voltstream-logs:/app/logs
+      
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+        
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      
+    networks:
+      - voltstream-network
+      
+    restart: unless-stopped
+    
+    # Production: Use these for resource limits
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 2G
+    #     reservations:
+    #       cpus: '1'
+    #       memory: 1G
+
+  # ╔════════════════════════════════════════════════════════════════════════╗
+  # ║                         MongoDB Database                               ║
+  # ╚════════════════════════════════════════════════════════════════════════╝
+  mongo:
+    image: mongo:7.0
+    container_name: voltstream-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: voltstream_password
+      MONGO_INITDB_DATABASE: voltstream
+      
+    volumes:
+      - voltstream-mongo-data:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+    networks:
+      - voltstream-network
+      
+    restart: unless-stopped
+
+  # ╔════════════════════════════════════════════════════════════════════════╗
+  # ║                        Redis Cache Server                              ║
+  # ╚════════════════════════════════════════════════════════════════════════╝
+  redis:
+    image: redis:7.2-alpine
+    container_name: voltstream-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass redis_password
+    
+    volumes:
+      - voltstream-redis-data:/data
+      
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+    networks:
+      - voltstream-network
+      
+    restart: unless-stopped
+
+  # ╔════════════════════════════════════════════════════════════════════════╗
+  # ║                      Nginx Reverse Proxy (Optional)                    ║
+  # ╚════════════════════════════════════════════════════════════════════════╝
+  nginx:
+    image: nginx:alpine
+    container_name: voltstream-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      
+    depends_on:
+      - voltstream-api
+      
+    networks:
+      - voltstream-network
+      
+    restart: unless-stopped
+    
+    # Enable only if using SSL/HTTPS
+    # profiles:
+    #   - prod
+
+# ╔════════════════════════════════════════════════════════════════════════╗
+# ║                         Named Volumes                                  ║
+# ╚════════════════════════════════════════════════════════════════════════╝
+volumes:
+  voltstream-mongo-data:
+    driver: local
+  voltstream-redis-data:
+    driver: local
+  voltstream-chroma-db:
+    driver: local
+  voltstream-uploads:
+    driver: local
+  voltstream-logs:
+    driver: local
+
+# ╔════════════════════════════════════════════════════════════════════════╗
+# ║                         Networks                                       ║
+# ╚════════════════════════════════════════════════════════════════════════╝
+networks:
+  voltstream-network:
+    driver: bridge
+
+# ╔════════════════════════════════════════════════════════════════════════╗
+# ║                      Usage Instructions                                ║
+# ╚════════════════════════════════════════════════════════════════════════╝
+
+# Start all services:
+# docker-compose up -d
+
+# View logs:
+# docker-compose logs -f voltstream-api
+
+# Access services:
+# - API: http://localhost:8080
+# - API Docs: http://localhost:8080/docs
+# - MongoDB: mongodb://root:voltstream_password@localhost:27017
+# - Redis: redis://localhost:6379
+
+# Restart specific service:
+# docker-compose restart voltstream-api
+
+# Stop all services:
+# docker-compose down
+
+# Remove volumes (WARNING: deletes data):
+# docker-compose down -v

@@ -1,10 +1,10 @@
-from google.adk.agents.sequential_agent import SequentialAgent
-from google.adk.agents.parallel_agent import ParallelAgent
+from google.adk.agents import SequentialAgent, ParallelAgent
 
 from agents.usage_analyst import usage_analyst_agent
 from agents.knowledge_retriever import knowledge_retriever_agent
 from agents.energy_advisor import energy_advisor_agent
 from agents.evaluation_agent import evaluation_agent
+# from agents.cost_forecast import cost_forecast_agent
 
 print("LOADED: energy_pipeline")
 
