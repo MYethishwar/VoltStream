@@ -14,6 +14,6 @@ energy_agent = Agent(
     description="Handles energy-related workflows.",
     instruction=ENERGY_AGENT_PROMPT,
     sub_agents=[
-        energy_pipeline,  # ← direct sub_agent, not AgentTool
+        energy_pipeline,  
     ],
 )

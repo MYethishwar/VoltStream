@@ -20,7 +20,7 @@ usage_analyst_agent = Agent(
     tools=[
         get_usage_history,
         get_peak_hours,
-        get_smart_schedule,
+
     ],
     output_key="usage_analysis",
 )

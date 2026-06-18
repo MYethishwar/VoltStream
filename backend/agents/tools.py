@@ -491,9 +491,10 @@ def get_energy_knowledge(query: str) -> str:
         return result.get("response", "No recommendations found.")
     return str(result)
 
+
+
+
 from services.rag_service import get_rag_response
-
-
 @rag_tool
 def rag_energy_search(query: str) -> str:
     """

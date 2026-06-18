@@ -151,4 +151,4 @@ def get_rag_response(user_question):
             "primary_source": primary_source,
             "sources": sources,
             "has_knowledge_base_context": True
-        }
+        }   
